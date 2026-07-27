@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { controlClass } from '../../components/control-styles';
-import { SearchIcon } from '../../components/icons';
+import { CloseIcon, SearchIcon } from '../../components/icons';
 import { Modal } from '../../components/Modal';
 import {
   asOneOf,
@@ -27,6 +27,7 @@ const selectClass = `${controlClass()} h-9 pr-8 sm:w-[10.5rem]`;
 export function IssueFilters({ params, members, onChange, onClear, hasActiveFilters }: Props) {
   const [search, setSearch] = useState(params.q ?? '');
   const [sheetOpen, setSheetOpen] = useState(false);
+  const sortValue = `${params.sort ?? 'createdAt'}:${params.order ?? 'desc'}`;
 
   // Keep the input in step when the URL changes from outside (Clear filters, back button).
   useEffect(() => {
@@ -41,11 +42,34 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
     return () => window.clearTimeout(timer);
   }, [search, params.q, onChange]);
 
-  const sortValue = `${params.sort ?? 'createdAt'}:${params.order ?? 'desc'}`;
+  const activeFilters = [
+    params.q ? { label: `Search: ${params.q}`, patch: { q: undefined } } : null,
+    params.status
+      ? { label: `Status: ${STATUS_META[params.status].label}`, patch: { status: undefined } }
+      : null,
+    params.priority
+      ? {
+          label: `Priority: ${PRIORITY_META[params.priority].label}`,
+          patch: { priority: undefined },
+        }
+      : null,
+    params.assignee
+      ? {
+          label:
+            params.assignee === 'unassigned'
+              ? 'Assignee: Unassigned'
+              : `Assignee: ${members.find((member) => member.userId === params.assignee)?.name ?? 'Selected'}`,
+          patch: { assignee: undefined },
+        }
+      : null,
+  ].filter(Boolean) as { label: string; patch: Partial<IssueListParams> }[];
 
-  const renderControls = (idPrefix: string, autoFocus = false) => (
+  const renderControls = (idPrefix: string, autoFocus = false, visibleLabels = false) => (
     <>
-      <label className="sr-only" htmlFor={`${idPrefix}-status`}>
+      <label
+        className={visibleLabels ? 'text-[13px] font-medium text-slate-700' : 'sr-only'}
+        htmlFor={`${idPrefix}-status`}
+      >
         Status
       </label>
       <select
@@ -63,7 +87,10 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         ))}
       </select>
 
-      <label className="sr-only" htmlFor={`${idPrefix}-priority`}>
+      <label
+        className={visibleLabels ? 'text-[13px] font-medium text-slate-700' : 'sr-only'}
+        htmlFor={`${idPrefix}-priority`}
+      >
         Priority
       </label>
       <select
@@ -80,7 +107,10 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         ))}
       </select>
 
-      <label className="sr-only" htmlFor={`${idPrefix}-assignee`}>
+      <label
+        className={visibleLabels ? 'text-[13px] font-medium text-slate-700' : 'sr-only'}
+        htmlFor={`${idPrefix}-assignee`}
+      >
         Assignee
       </label>
       <select
@@ -98,7 +128,10 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         ))}
       </select>
 
-      <label className="sr-only" htmlFor={`${idPrefix}-sort`}>
+      <label
+        className={visibleLabels ? 'text-[13px] font-medium text-slate-700' : 'sr-only'}
+        htmlFor={`${idPrefix}-sort`}
+      >
         Sort
       </label>
       <select
@@ -125,7 +158,7 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm md:sticky md:top-[4.5rem] md:z-20">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[12rem] flex-1 lg:max-w-xs">
+        <div className="relative min-w-[12rem] flex-1 lg:max-w-sm">
           <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400">
             <SearchIcon />
           </span>
@@ -158,13 +191,38 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         )}
       </div>
 
+      {activeFilters.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+          <span className="text-xs font-medium text-slate-500">Active</span>
+          {activeFilters.map((filter) => (
+            <button
+              key={filter.label}
+              type="button"
+              onClick={() => onChange(filter.patch)}
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 transition-colors hover:border-indigo-200 hover:bg-indigo-100"
+            >
+              <span className="truncate">{filter.label}</span>
+              <CloseIcon className="h-3 w-3" />
+            </button>
+          ))}
+        </div>
+      )}
+
       <Modal
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         title="Filters"
         footer={<Button onClick={() => setSheetOpen(false)}>Done</Button>}
       >
-        <div className="flex flex-col gap-3">{renderControls('filter-sheet', true)}</div>
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-slate-500">Refine the issue list without leaving the project.</p>
+          {renderControls('filter-sheet', true, true)}
+          {hasActiveFilters && (
+            <Button variant="secondary" onClick={onClear}>
+              Clear filters
+            </Button>
+          )}
+        </div>
       </Modal>
     </div>
   );

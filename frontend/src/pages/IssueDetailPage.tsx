@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { Button } from '../components/Button';
@@ -10,13 +10,30 @@ import { useToast } from '../components/toast-context';
 import { useAuth } from '../features/auth/auth-context';
 import { CommentThread } from '../features/comments/CommentThread';
 import { IssueFormModal } from '../features/issues/IssueFormModal';
-import { PriorityBadge, StatusBadge } from '../features/issues/badges';
+import { Avatar, PriorityBadge, StatusBadge } from '../features/issues/badges';
 import { useDeleteIssue, useIssue, useUpdateIssue } from '../features/issues/hooks';
 import { useMembers } from '../features/projects/hooks';
 import { ISSUE_STATUSES, type IssueStatus } from '../types/api';
-import { formatDateTime, shortId } from '../utils/format';
+import { formatDateTime, initials, shortId } from '../utils/format';
 import { STATUS_META } from '../utils/labels';
 import { NotFoundPage } from './NotFoundPage';
+
+function Property({
+  label,
+  children,
+  className = '',
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${className}`}>
+      <span className="text-xs font-medium text-slate-500">{label}</span>
+      {children}
+    </div>
+  );
+}
 
 export function IssueDetailPage() {
   const { issueId = '' } = useParams();
@@ -94,83 +111,87 @@ export function IssueDetailPage() {
   const metadata = (
     <aside
       aria-label="Issue metadata"
-      className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:w-[280px] lg:shrink-0 lg:grid-cols-1"
+      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:w-[300px] lg:shrink-0"
     >
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-slate-500">Status</span>
-        {isMaintainer ? (
-          <>
-            <label htmlFor="status-select" className="sr-only">
-              Change status
-            </label>
-            <select
-              id="status-select"
-              className={`${controlClass()} h-9`}
-              value={issue.status}
-              disabled={updateIssue.isPending}
-              onChange={(e) => patchStatus(e.target.value as IssueStatus)}
-            >
-              {ISSUE_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_META[status].label}
-                </option>
-              ))}
-            </select>
-          </>
-        ) : (
-          <StatusBadge status={issue.status} />
-        )}
+      <div className="border-b border-slate-100 pb-4">
+        <h2 className="text-sm font-semibold text-slate-900">Issue properties</h2>
+        <p className="pt-1 text-xs text-slate-500">Status, ownership, and timestamps.</p>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-slate-500">Priority</span>
-        <PriorityBadge priority={issue.priority} />
-      </div>
+      <div className="grid gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-1">
+        <Property label="Status">
+          {isMaintainer ? (
+            <>
+              <label htmlFor="status-select" className="sr-only">
+                Change status
+              </label>
+              <select
+                id="status-select"
+                className={`${controlClass()} h-9`}
+                value={issue.status}
+                disabled={updateIssue.isPending}
+                onChange={(e) => patchStatus(e.target.value as IssueStatus)}
+              >
+                {ISSUE_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_META[status].label}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : (
+            <StatusBadge status={issue.status} />
+          )}
+        </Property>
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-slate-500">Assignee</span>
-        {isMaintainer ? (
-          <>
-            <label htmlFor="assignee-select" className="sr-only">
-              Change assignee
-            </label>
-            <select
-              id="assignee-select"
-              className={`${controlClass()} h-9`}
-              value={issue.assignee?.id ?? ''}
-              disabled={updateIssue.isPending}
-              onChange={(e) => patchAssignee(e.target.value)}
-            >
-              <option value="">Unassigned</option>
-              {(members.data ?? []).map((member) => (
-                <option key={member.userId} value={member.userId}>
-                  {member.name}
-                </option>
-              ))}
-            </select>
-          </>
-        ) : (
-          <span className="text-sm text-slate-700">{issue.assignee?.name ?? 'Unassigned'}</span>
-        )}
-      </div>
+        <Property label="Priority">
+          <PriorityBadge priority={issue.priority} />
+        </Property>
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-slate-500">Reporter</span>
-        <span className="text-sm text-slate-700">{issue.reporter.name}</span>
-      </div>
+        <Property label="Assignee">
+          {isMaintainer ? (
+            <>
+              <label htmlFor="assignee-select" className="sr-only">
+                Change assignee
+              </label>
+              <select
+                id="assignee-select"
+                className={`${controlClass()} h-9`}
+                value={issue.assignee?.id ?? ''}
+                disabled={updateIssue.isPending}
+                onChange={(e) => patchAssignee(e.target.value)}
+              >
+                <option value="">Unassigned</option>
+                {(members.data ?? []).map((member) => (
+                  <option key={member.userId} value={member.userId}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : (
+            <span className="text-sm text-slate-700">{issue.assignee?.name ?? 'Unassigned'}</span>
+          )}
+        </Property>
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-slate-500">Created</span>
-        <time className="text-sm text-slate-700" dateTime={issue.createdAt}>
-          {formatDateTime(issue.createdAt)}
-        </time>
-      </div>
+        <Property label="Reporter">
+          <span className="flex items-center gap-2 text-sm text-slate-700">
+            <Avatar name={initials(issue.reporter.name)} />
+            {issue.reporter.name}
+          </span>
+        </Property>
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-slate-500">Updated</span>
-        <time className="text-sm text-slate-700" dateTime={issue.updatedAt}>
-          {formatDateTime(issue.updatedAt)}
-        </time>
+        <Property label="Created">
+          <time className="text-sm text-slate-700" dateTime={issue.createdAt}>
+            {formatDateTime(issue.createdAt)}
+          </time>
+        </Property>
+
+        <Property label="Updated">
+          <time className="text-sm text-slate-700" dateTime={issue.updatedAt}>
+            {formatDateTime(issue.updatedAt)}
+          </time>
+        </Property>
       </div>
     </aside>
   );
@@ -189,31 +210,39 @@ export function IssueDetailPage() {
         <span className="font-mono">{shortId(issue.id)}</span>
       </nav>
 
-      <div className="flex flex-col gap-4 pb-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold break-words text-slate-900">{issue.title}</h1>
-          <div className="flex items-center gap-3 pt-2">
-            <StatusBadge status={issue.status} />
-            <PriorityBadge priority={issue.priority} />
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 pb-2">
+              <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs font-medium text-slate-500">
+                {shortId(issue.id)}
+              </span>
+              <span className="text-xs text-slate-400">{issue.project.name}</span>
+            </div>
+            <h1 className="text-2xl font-semibold break-words text-slate-900">{issue.title}</h1>
+            <div className="flex flex-wrap items-center gap-3 pt-3">
+              <StatusBadge status={issue.status} />
+              <PriorityBadge priority={issue.priority} />
+            </div>
           </div>
-        </div>
 
-        {/* Controls a viewer cannot use are not rendered at all (docs/03 §1). */}
-        <div className="flex gap-2">
-          {canEdit && (
-            <Button variant="secondary" onClick={() => setEditing(true)}>
-              Edit
-            </Button>
-          )}
-          {isMaintainer && (
-            <Button variant="secondary" onClick={() => setConfirmingDelete(true)}>
-              Delete
-            </Button>
-          )}
+          {/* Controls a viewer cannot use are not rendered at all (docs/03 §1). */}
+          <div className="flex shrink-0 gap-2">
+            {canEdit && (
+              <Button variant="secondary" onClick={() => setEditing(true)}>
+                Edit
+              </Button>
+            )}
+            {isMaintainer && (
+              <Button variant="secondary" onClick={() => setConfirmingDelete(true)}>
+                Delete
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row-reverse lg:items-start">
+      <div className="mt-6 flex flex-col gap-6 lg:flex-row-reverse lg:items-start">
         {metadata}
 
         <div className="flex min-w-0 flex-1 flex-col gap-6">
@@ -221,7 +250,7 @@ export function IssueDetailPage() {
             <h2 id="description-heading" className="pb-2 text-base font-semibold text-slate-900">
               Description
             </h2>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               {issue.description ? (
                 <p className="text-sm whitespace-pre-wrap text-slate-800">{issue.description}</p>
               ) : (

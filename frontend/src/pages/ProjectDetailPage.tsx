@@ -30,6 +30,11 @@ export function ProjectDetailPage() {
   const [creating, setCreating] = useState(false);
 
   const isMaintainer = project.data?.role === 'MAINTAINER';
+  const visibleIssues = issues.data?.issues ?? [];
+  const visibleActiveIssues = visibleIssues.filter(
+    (issue) => issue.status === 'OPEN' || issue.status === 'IN_PROGRESS',
+  ).length;
+  const visibleCriticalIssues = visibleIssues.filter((issue) => issue.priority === 'CRITICAL').length;
 
   // A non-member gets 404 from the API; the UI must not distinguish that from
   // "deleted" either (docs/03 §5.6).
@@ -57,7 +62,7 @@ export function ProjectDetailPage() {
         <span className="font-mono">{project.data?.key ?? '…'}</span>
       </nav>
 
-      <div className="flex flex-col gap-4 pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 pb-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           {project.isPending ? (
             <>
@@ -75,11 +80,31 @@ export function ProjectDetailPage() {
               {project.data.description && (
                 <p className="max-w-2xl pt-2 text-sm text-slate-600">{project.data.description}</p>
               )}
+              {issues.data && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                    {issues.data.meta.total}{' '}
+                    {hasActiveFilters
+                      ? issues.data.meta.total === 1
+                        ? 'matching issue'
+                        : 'matching issues'
+                      : issues.data.meta.total === 1
+                        ? 'total issue'
+                        : 'total issues'}
+                  </span>
+                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                    {visibleActiveIssues} active visible
+                  </span>
+                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                    {visibleCriticalIssues} critical visible
+                  </span>
+                </div>
+              )}
             </>
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           <Button variant="secondary" onClick={() => setMembersOpen(true)}>
             <UsersIcon />
             Members
@@ -100,11 +125,19 @@ export function ProjectDetailPage() {
           hasActiveFilters={hasActiveFilters}
         />
 
-        {issues.data && (
-          <p className="text-xs font-medium text-slate-500" aria-live="polite">
-            {issues.data.meta.total} {issues.data.meta.total === 1 ? 'issue' : 'issues'}
-          </p>
-        )}
+        <div className="flex items-center justify-between gap-3">
+          {issues.data && (
+            <p className="text-xs font-medium text-slate-500" aria-live="polite">
+              Showing {issues.data.issues.length} of {issues.data.meta.total}{' '}
+              {issues.data.meta.total === 1 ? 'issue' : 'issues'}
+            </p>
+          )}
+          {issues.isFetching && !issues.isPending && (
+            <p className="text-xs text-slate-400" role="status">
+              Updating...
+            </p>
+          )}
+        </div>
 
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {issues.isPending ? (

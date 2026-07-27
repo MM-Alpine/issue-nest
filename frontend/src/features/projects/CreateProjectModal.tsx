@@ -117,6 +117,13 @@ export function CreateProjectModal({ open, onClose }: Props) {
       }
     >
       <form id="create-project-form" className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="text-sm font-semibold text-slate-900">Project workspace</p>
+          <p className="pt-0.5 text-xs text-slate-500">
+            Projects group members, issues, filters, and comments.
+          </p>
+        </div>
+
         <Field id="project-name" label="Name" error={errors.name}>
           <input
             id="project-name"

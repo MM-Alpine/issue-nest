@@ -61,6 +61,36 @@ export const CloseIcon = ({ className = base }: IconProps) => (
   </svg>
 );
 
+export const ChevronDownIcon = ({ className = base }: IconProps) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
+export const LogoutIcon = ({ className = base }: IconProps) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M10 17l5-5-5-5M15 12H3M21 4v16" />
+  </svg>
+);
+
 export const UsersIcon = ({ className = base }: IconProps) => (
   <svg
     className={className}
