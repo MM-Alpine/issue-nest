@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/ashokkumarg/projects/issue-nest/.codex/hooks/block-dangerous-commands.mjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/ashokkumarg/projects/issue-nest/.codex/hooks/git-arg-guard.mjs'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/ashokkumarg/projects/issue-nest/.codex/hooks/format-on-write.mjs'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/ashokkumarg/projects/issue-nest/.codex/hooks/stop-gate.mjs'",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}

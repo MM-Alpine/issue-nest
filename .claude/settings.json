@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Read(./**)",
+      "Edit(./backend/**)",
+      "Write(./backend/**)",
+      "MultiEdit(./backend/**)",
+      "Edit(./frontend/**)",
+      "Write(./frontend/**)",
+      "MultiEdit(./frontend/**)",
+      "Bash(./scripts/check.sh)",
+      "Bash(./scripts/verify.sh)",
+      "Bash(./scripts/setup.sh)",
+      "Bash(./scripts/db-verify.sh)",
+      "Bash(bash scripts/check.sh)",
+      "Bash(npm install*)",
+      "Bash(npm ci*)",
+      "Bash(npm run *)",
+      "Bash(npm test*)",
+      "Bash(npx tsc*)",
+      "Bash(npx vitest*)",
+      "Bash(npx prisma generate*)",
+      "Bash(npx prisma validate*)",
+      "Bash(npx prisma format*)",
+      "Bash(docker compose up*)",
+      "Bash(docker compose ps*)",
+      "Bash(docker compose logs*)",
+      "Bash(git status*)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git checkout -b *)",
+      "Bash(git branch*)"
+    ],
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(gh pr create *)",
+      "Bash(*migrate*)",
+      "Bash(*prisma migrate reset*)",
+      "Bash(docker compose down*)",
+      "Edit(./docs/**)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/*secret*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Bash(git push --force *)",
+      "Bash(git push origin master*)",
+      "Bash(git push origin main*)",
+      "Bash(git push origin develop*)",
+      "Bash(git reset --hard *)",
+      "Bash(rm -rf *)",
+      "Bash(*prisma db push*)",
+      "Bash(npm publish *)",
+      "Bash(pnpm publish *)",
+      "Bash(yarn publish *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/block-dangerous-commands.mjs" },
+          { "type": "command", "command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/git-arg-guard.mjs" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/format-on-write.mjs" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/stop-gate.mjs", "timeout": 600 }
+        ]
+      }
+    ]
+  }
+}

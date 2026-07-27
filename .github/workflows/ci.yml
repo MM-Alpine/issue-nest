@@ -1,0 +1,83 @@
+name: CI
+
+# Jobs skip until backend/ or frontend/ is scaffolded, so early docs/setup PRs do not fail.
+on:
+  pull_request:
+    branches: [master, main, develop]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend (migrate deploy + tests)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: issuehub
+          POSTGRES_PASSWORD: issuehub
+          POSTGRES_DB: issuehub_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql://issuehub:issuehub@localhost:5432/issuehub_test?schema=public
+      TEST_DATABASE_URL: postgresql://issuehub:issuehub@localhost:5432/issuehub_test?schema=public
+      JWT_SECRET: test-secret-value-at-least-32-characters-long
+      JWT_EXPIRES_IN: 1d
+      NODE_ENV: test
+      CORS_ORIGIN: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        if: ${{ hashFiles('backend/package.json') != '' }}
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: cd backend && npm ci
+        if: ${{ hashFiles('backend/package.json') != '' }}
+      - run: cd backend && npx prisma generate
+        if: ${{ hashFiles('backend/prisma/schema.prisma') != '' }}
+      - name: Apply committed migrations (never db push)
+        if: ${{ hashFiles('backend/prisma/schema.prisma') != '' }}
+        run: cd backend && npx prisma migrate deploy
+      - name: Typecheck
+        if: ${{ hashFiles('backend/package.json') != '' }}
+        run: cd backend && npm run typecheck
+      - name: Lint
+        if: ${{ hashFiles('backend/package.json') != '' }}
+        run: cd backend && npm run lint
+      - name: Tests + coverage
+        if: ${{ hashFiles('backend/package.json') != '' }}
+        run: |
+          cd backend
+          if npm pkg get "scripts.test:coverage" | grep -qv '^{}$\|^null$'; then
+            npm run test:coverage
+          else
+            npm test
+          fi
+
+  frontend:
+    name: Frontend (typecheck + build)
+    runs-on: ubuntu-latest
+    env:
+      VITE_API_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        if: ${{ hashFiles('frontend/package.json') != '' }}
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: cd frontend && npm ci
+        if: ${{ hashFiles('frontend/package.json') != '' }}
+      - run: cd frontend && npm run typecheck
+        if: ${{ hashFiles('frontend/package.json') != '' }}
+      - run: cd frontend && npm run build
+        if: ${{ hashFiles('frontend/package.json') != '' }}
