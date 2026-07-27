@@ -36,7 +36,12 @@ export async function signup(input: SignupBody) {
 }
 
 export async function login(input: LoginBody) {
-  const user = await prisma.user.findUnique({ where: { email: input.email } });
+  // The one place `passwordHash` is read at all, and still an explicit select: no `User`
+  // read anywhere in the codebase pulls the whole row (INVARIANTS #6).
+  const user = await prisma.user.findUnique({
+    where: { email: input.email },
+    select: { id: true, name: true, email: true, passwordHash: true },
+  });
 
   if (!user) {
     await verifyPassword(input.password, DUMMY_HASH);

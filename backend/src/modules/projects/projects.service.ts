@@ -56,7 +56,9 @@ export async function listProjects(userId: string): Promise<ProjectSummary[]> {
   const memberships = await prisma.projectMember.findMany({
     where: { userId },
     include: { project: { include: { _count: { select: { issues: true } } } } },
-    orderBy: { project: { createdAt: 'desc' } },
+    // The id tiebreaker keeps the order deterministic for projects created in the
+    // same millisecond (the seed creates two back to back).
+    orderBy: [{ project: { createdAt: 'desc' } }, { project: { id: 'desc' } }],
   });
 
   return memberships.map(({ project, role }) => ({

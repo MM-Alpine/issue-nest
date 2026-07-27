@@ -1,4 +1,4 @@
-import { IssueStatus, Role } from '@prisma/client';
+import { IssueStatus, Prisma, Role } from '@prisma/client';
 import { forbidden, notFound, unprocessable } from '../../lib/errors';
 import { prisma } from '../../lib/prisma';
 import { buildMeta, toSkipTake } from '../../shared/pagination';
@@ -39,11 +39,17 @@ export async function listIssues(projectId: string, userId: string, query: Issue
   const orderBy = buildIssueOrderBy(query.sort, query.order);
   const { skip, take } = toSkipTake(query.page, query.pageSize);
 
-  // One snapshot for both reads, so `meta.total` can never disagree with the page.
-  const [issues, total] = await prisma.$transaction([
-    prisma.issue.findMany({ where, orderBy, skip, take, include: rowInclude }),
-    prisma.issue.count({ where }),
-  ]);
+  // One snapshot for both reads, so `meta.total` can never disagree with the page
+  // (docs/05 §2.8). The isolation level is explicit and load-bearing: under Postgres's
+  // default READ COMMITTED each statement takes its own snapshot, so a concurrent
+  // insert between the findMany and the count would produce inconsistent meta.
+  const [issues, total] = await prisma.$transaction(
+    [
+      prisma.issue.findMany({ where, orderBy, skip, take, include: rowInclude }),
+      prisma.issue.count({ where }),
+    ],
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+  );
 
   return {
     issues: issues.map(({ _count, ...issue }) => ({ ...issue, commentCount: _count.comments })),

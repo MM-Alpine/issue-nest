@@ -4,8 +4,11 @@ import { controlClass } from '../../components/control-styles';
 import { SearchIcon } from '../../components/icons';
 import { Modal } from '../../components/Modal';
 import {
+  asOneOf,
   ISSUE_PRIORITIES,
+  ISSUE_SORTS,
   ISSUE_STATUSES,
+  SORT_ORDERS,
   type IssueListParams,
   type Member,
 } from '../../types/api';
@@ -49,7 +52,7 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         id="filter-status"
         className={selectClass}
         value={params.status ?? ''}
-        onChange={(e) => onChange({ status: (e.target.value || undefined) as never })}
+        onChange={(e) => onChange({ status: asOneOf(e.target.value, ISSUE_STATUSES) })}
       >
         <option value="">All statuses</option>
         {ISSUE_STATUSES.map((status) => (
@@ -66,7 +69,7 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         id="filter-priority"
         className={selectClass}
         value={params.priority ?? ''}
-        onChange={(e) => onChange({ priority: (e.target.value || undefined) as never })}
+        onChange={(e) => onChange({ priority: asOneOf(e.target.value, ISSUE_PRIORITIES) })}
       >
         <option value="">All priorities</option>
         {ISSUE_PRIORITIES.map((priority) => (
@@ -103,7 +106,10 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         value={sortValue}
         onChange={(e) => {
           const [sort, order] = e.target.value.split(':');
-          onChange({ sort: sort as never, order: order as never });
+          onChange({
+            sort: asOneOf(sort, ISSUE_SORTS) ?? 'createdAt',
+            order: asOneOf(order, SORT_ORDERS) ?? 'desc',
+          });
         }}
       >
         {SORT_OPTIONS.map((option) => (

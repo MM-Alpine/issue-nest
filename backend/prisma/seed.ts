@@ -104,28 +104,35 @@ async function main(): Promise<void> {
 
   // Issues have no natural unique key, so re-seeding replaces this project's issues
   // wholesale rather than accumulating duplicates. Comments cascade with them.
+  //
+  // Delete + recreate runs in ONE transaction: an interrupted seed (Ctrl-C, dropped
+  // connection) must roll back to the previous issue set rather than leave a reviewer
+  // with a silently half-populated project.
   const seedIssues = async (projectKey: string, seeds: IssueSeed[]): Promise<string[]> => {
     const projectId = projects[projectKey] as string;
-    await prisma.issue.deleteMany({ where: { projectId } });
 
-    const ids: string[] = [];
-    for (const seed of seeds) {
-      const created = await prisma.issue.create({
-        data: {
-          projectId,
-          title: seed.title,
-          description: seed.description,
-          status: seed.status,
-          priority: seed.priority,
-          reporterId: users[seed.reporter] as string,
-          assigneeId: seed.assignee ? (users[seed.assignee] as string) : null,
-          createdAt: daysAgo(seed.age),
-        },
-        select: { id: true },
-      });
-      ids.push(created.id);
-    }
-    return ids;
+    return prisma.$transaction(async (tx) => {
+      await tx.issue.deleteMany({ where: { projectId } });
+
+      const ids: string[] = [];
+      for (const seed of seeds) {
+        const created = await tx.issue.create({
+          data: {
+            projectId,
+            title: seed.title,
+            description: seed.description,
+            status: seed.status,
+            priority: seed.priority,
+            reporterId: users[seed.reporter] as string,
+            assigneeId: seed.assignee ? (users[seed.assignee] as string) : null,
+            createdAt: daysAgo(seed.age),
+          },
+          select: { id: true },
+        });
+        ids.push(created.id);
+      }
+      return ids;
+    });
   };
 
   const webIssueIds = await seedIssues('WEB', WEB_ISSUES);

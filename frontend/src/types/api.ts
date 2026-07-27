@@ -9,6 +9,18 @@ export type IssuePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export const ISSUE_STATUSES: IssueStatus[] = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 export const ISSUE_PRIORITIES: IssuePriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
+/**
+ * Narrows a raw `<select>` value (or a query-string value) to a known union member,
+ * returning undefined for anything else. Used instead of a cast so that drift between
+ * an option list and its type is a compile error rather than a silent bad request.
+ */
+export function asOneOf<T extends string>(
+  value: string | null | undefined,
+  allowed: readonly T[],
+): T | undefined {
+  return value && (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
+}
+
 /** Users embedded anywhere are always exactly this shape — never a password hash. */
 export interface PublicUser {
   id: string;
@@ -95,6 +107,9 @@ export interface Comment {
 
 export type IssueSort = 'createdAt' | 'priority' | 'status';
 export type SortOrder = 'asc' | 'desc';
+
+export const ISSUE_SORTS: IssueSort[] = ['createdAt', 'priority', 'status'];
+export const SORT_ORDERS: SortOrder[] = ['asc', 'desc'];
 
 export interface IssueListParams {
   q?: string;

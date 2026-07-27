@@ -12,6 +12,15 @@ export function useDialog(open: boolean, onClose: () => void) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
+  // Callers pass an inline arrow, so `onClose` has a new identity every render. Keeping
+  // it in a ref means the effect below depends ONLY on `open` — otherwise any unrelated
+  // parent re-render (e.g. a mutation invalidating a query while the drawer is open)
+  // would tear the effect down and re-run it, yanking focus out of the panel and back.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -27,7 +36,7 @@ export function useDialog(open: boolean, onClose: () => void) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== 'Tab' || !panelRef.current) return;
@@ -53,7 +62,7 @@ export function useDialog(open: boolean, onClose: () => void) {
       document.body.style.overflow = overflow;
       previouslyFocused.current?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return panelRef;
 }
