@@ -41,7 +41,8 @@ export function IssueDetailPage() {
   const toast = useToast();
   const { user } = useAuth();
 
-  const query = useIssue(issueId);
+  const [deletingRequested, setDeletingRequested] = useState(false);
+  const query = useIssue(issueId, !deletingRequested);
   const issue = query.data?.issue;
   const viewerRole = query.data?.viewerRole;
   const projectId = issue?.project.id;
@@ -302,18 +303,21 @@ export function IssueDetailPage() {
             <Button
               variant="danger"
               pending={deleteIssue.isPending}
-              onClick={() =>
+              onClick={() => {
+                setDeletingRequested(true);
                 deleteIssue.mutate(undefined, {
                   onSuccess: () => {
                     toast.success('Issue deleted');
                     navigate(`/projects/${issue.project.id}`, { replace: true });
                   },
-                  onError: (error) =>
+                  onError: (error) => {
+                    setDeletingRequested(false);
                     toast.error(
                       error instanceof ApiError ? error.message : 'Could not delete the issue',
-                    ),
-                })
-              }
+                    );
+                  },
+                });
+              }}
             >
               Delete
             </Button>
