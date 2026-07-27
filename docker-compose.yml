@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: issuehub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: issuehub
+      POSTGRES_PASSWORD: issuehub
+      POSTGRES_DB: issuehub_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - issuehub_pgdata:/var/lib/postgresql/data
+      # Runs ONLY on an empty volume. If issuehub_test is missing, `docker compose down -v` first.
+      - ./docker/init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U issuehub -d issuehub_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  issuehub_pgdata:
