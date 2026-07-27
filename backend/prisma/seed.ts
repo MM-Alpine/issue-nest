@@ -132,7 +132,11 @@ async function main(): Promise<void> {
         ids.push(created.id);
       }
       return ids;
-    });
+      // Prisma's 5s default is comfortable locally but not when seeding a hosted
+      // database over a public proxy, where each statement pays real round-trip
+      // latency. Generous ceilings keep the all-or-nothing guarantee above intact
+      // instead of trading it for speed.
+    }, { maxWait: 15_000, timeout: 120_000 });
   };
 
   const webIssueIds = await seedIssues('WEB', WEB_ISSUES);

@@ -9,6 +9,17 @@ The application is split into two independently runnable services:
 - **Backend:** Node.js 20, Express 5, TypeScript, Prisma, PostgreSQL, Zod, JWT, Vitest, Supertest
 - **Frontend:** React 19, Vite, TypeScript, React Router, TanStack Query, Tailwind CSS
 
+## Live Deployment
+
+| Service | URL |
+|---|---|
+| Web app | https://issuehub-web-production.up.railway.app |
+| API | https://issuehub-api-production.up.railway.app |
+| Health check | https://issuehub-api-production.up.railway.app/api/health |
+
+Sign in with any of the [demo accounts](#demo-accounts) below — the hosted database carries the same
+seed data. Deployment details are in [Deploying to Railway](#deploying-to-railway).
+
 ---
 
 ## Features
@@ -366,6 +377,92 @@ npm run preview
 
 For production deployment, configure environment variables explicitly and run database migrations
 with `npm run db:migrate:deploy` before starting the API.
+
+---
+
+## Deploying to Railway
+
+The hosted instance runs as three Railway services in one project, in the `production` environment.
+
+| Service | Source | Runtime |
+|---|---|---|
+| `Postgres` | Railway PostgreSQL 16 template | Reachable from the API over the private network as `postgres.railway.internal` |
+| `issuehub-api` | `backend/Dockerfile`, root directory `/backend` | Node 20 on debian-slim, production dependencies only, runs as the non-root `node` user |
+| `issuehub-web` | `frontend/Dockerfile`, root directory `/frontend` | Caddy serving the built Vite assets |
+
+Both app services deploy from `main` on push. `watchPatterns` scope each service to its own
+directory, so a backend-only commit does not rebuild the frontend.
+
+### Per-service configuration
+
+Build and deploy settings are committed as config-as-code in `backend/railway.json` and
+`frontend/railway.json` — builder, healthcheck path and timeout, and an `ON_FAILURE` restart policy.
+
+Three details are worth knowing before changing anything:
+
+- **Migrations run as a pre-deploy step**, not as part of the start command. A Railway start command
+  is argv-split rather than shell-interpreted, so a `migrate && start` chain degrades silently into
+  extra arguments passed to Prisma and the server never boots. `preDeployCommand` also runs the
+  migration once per deployment instead of once per replica restart.
+- **`PORT` is pinned to 4000** on the API service. Railway injects its own `PORT` (8080) at runtime,
+  which would leave the app listening on a port the service domain does not target. Pinning it keeps
+  the Dockerfile's `EXPOSE`, the domain target port, and local development in agreement.
+- **`VITE_API_URL` is baked in at build time**, because Vite inlines `import.meta.env`. Changing the
+  API URL requires a **rebuild** of the web service, not a restart. It is declared as a Docker `ARG`
+  and Railway supplies service variables to Docker builds as build args.
+
+### Environment variables
+
+Set on `issuehub-api`:
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` — a Railway reference, so no credential is copied |
+| `JWT_SECRET` | Random 64-character hex value, set from stdin so it never appears in shell history |
+| `CORS_ORIGIN` | The web service URL — the API allows that origin only |
+| `PORT` | `4000` |
+| `NODE_ENV` | `production` |
+| `JWT_EXPIRES_IN` | `1d` |
+
+Set on `issuehub-web`:
+
+| Variable | Value |
+|---|---|
+| `VITE_API_URL` | The API service URL |
+
+### Seeding the hosted database
+
+Migrations apply automatically on every deploy. Demo data is a deliberate one-off, run from a
+workstation against the database's public proxy URL:
+
+```bash
+cd backend
+railway run --service Postgres sh -c 'DATABASE_URL="$DATABASE_PUBLIC_URL" npm run db:seed'
+```
+
+The seed is idempotent — every write is an upsert keyed on a unique column, and each project's
+issues are replaced wholesale inside one transaction, so re-running it never accumulates duplicates.
+
+### Recreating the deployment from scratch
+
+```bash
+railway login
+railway init --name issue-nest
+railway add --database postgres
+railway add --service issuehub-api
+railway add --service issuehub-web
+railway domain --service issuehub-api --port 4000
+railway domain --service issuehub-web --port 8080
+```
+
+Then set the variables above, set each service's root directory (`/backend`, `/frontend`) and
+config-as-code path (`/backend/railway.json`, `/frontend/railway.json`), and connect both services to
+the repository:
+
+```bash
+railway service source connect --repo <owner>/issue-nest --branch main --service issuehub-api
+railway service source connect --repo <owner>/issue-nest --branch main --service issuehub-web
+```
 
 ---
 
