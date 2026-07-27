@@ -39,4 +39,10 @@ USER node
 EXPOSE 4000
 
 # Railway injects PORT; env.ts defaults to 4000 when it is absent.
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+#
+# The server only serves — it does not migrate. Railway runs migrations as a
+# pre-deploy step (see railway.json) because a start command is argv-split, not
+# shell-interpreted, so a `migrate && start` chain silently degrades into
+# arguments passed to prisma and the server never boots. Pre-deploy also runs the
+# migration once per deployment instead of once per replica restart.
+CMD ["node", "dist/server.js"]
