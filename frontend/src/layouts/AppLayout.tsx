@@ -25,12 +25,12 @@ export function AppLayout() {
       </a>
 
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-[1280px] items-center gap-6 px-4 sm:px-6">
-          <Link to="/projects" className="rounded-md" aria-label="IssueHub home">
+        <div className="mx-auto flex h-14 max-w-[1280px] items-center gap-3 px-3 sm:gap-6 sm:px-6">
+          <Link to="/projects" className="shrink-0 rounded-md" aria-label="IssueHub home">
             <Wordmark />
           </Link>
 
-          <nav className="flex-1">
+          <nav className="min-w-0 flex-1">
             <NavLink
               to="/projects"
               className={({ isActive }) =>
@@ -44,7 +44,7 @@ export function AppLayout() {
           </nav>
 
           {user && (
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <span className="hidden text-sm text-slate-600 sm:inline">{user.name}</span>
               <span
                 className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-semibold text-indigo-700 sm:hidden"
@@ -52,7 +52,7 @@ export function AppLayout() {
               >
                 {initials(user.name)}
               </span>
-              <Button variant="ghost" onClick={handleLogout}>
+              <Button variant="ghost" className="px-2.5 sm:px-4" onClick={handleLogout}>
                 Log out
               </Button>
             </div>

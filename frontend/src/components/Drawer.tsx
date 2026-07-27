@@ -29,7 +29,7 @@ export function Drawer({ open, onClose, title, children }: DrawerProps) {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="animate-drawer-in motion-scale relative flex h-full w-full max-w-sm flex-col bg-white shadow-lg"
+        className="animate-drawer-in motion-scale relative flex h-full w-full max-w-md flex-col bg-white shadow-lg sm:border-l sm:border-slate-200"
       >
         <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <h2 id={titleId} className="text-base font-semibold text-slate-900">

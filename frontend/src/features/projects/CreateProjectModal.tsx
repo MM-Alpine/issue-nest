@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { ApiError } from '../../api/client';
 import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
@@ -24,6 +24,9 @@ export function CreateProjectModal({ open, onClose }: Props) {
   const [description, setDescription] = useState('');
   const [errors, setErrors] = useState<{ name?: string; key?: string; description?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const nameRef = useRef<HTMLInputElement | null>(null);
+  const keyRef = useRef<HTMLInputElement | null>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
 
   const reset = () => {
     setName('');
@@ -47,7 +50,14 @@ export function CreateProjectModal({ open, onClose }: Props) {
     if (!KEY_PATTERN.test(key)) next.key = '2–10 letters or digits, starting with a letter';
     if (description.length > 1000) next.description = 'Description must be at most 1000 characters';
     setErrors(next);
-    if (Object.keys(next).length > 0) return;
+    if (Object.keys(next).length > 0) {
+      window.requestAnimationFrame(() => {
+        if (next.name) nameRef.current?.focus();
+        else if (next.key) keyRef.current?.focus();
+        else descriptionRef.current?.focus();
+      });
+      return;
+    }
 
     createProject.mutate(
       {
@@ -64,13 +74,20 @@ export function CreateProjectModal({ open, onClose }: Props) {
           if (error instanceof ApiError) {
             if (error.code === 'PROJECT_KEY_TAKEN') {
               setErrors({ key: 'That key is already taken.' });
+              window.requestAnimationFrame(() => keyRef.current?.focus());
               return;
             }
             if (error.details) {
-              setErrors({
+              const serverErrors = {
                 name: error.fieldError('name'),
                 key: error.fieldError('key'),
                 description: error.fieldError('description'),
+              };
+              setErrors(serverErrors);
+              window.requestAnimationFrame(() => {
+                if (serverErrors.name) nameRef.current?.focus();
+                else if (serverErrors.key) keyRef.current?.focus();
+                else if (serverErrors.description) descriptionRef.current?.focus();
               });
               return;
             }
@@ -103,6 +120,8 @@ export function CreateProjectModal({ open, onClose }: Props) {
         <Field id="project-name" label="Name" error={errors.name}>
           <input
             id="project-name"
+            ref={nameRef}
+            data-autofocus
             className={inputClass(Boolean(errors.name))}
             value={name}
             aria-invalid={Boolean(errors.name)}
@@ -121,6 +140,7 @@ export function CreateProjectModal({ open, onClose }: Props) {
         >
           <input
             id="project-key"
+            ref={keyRef}
             className={`${inputClass(Boolean(errors.key))} font-mono uppercase`}
             value={key}
             maxLength={10}
@@ -140,6 +160,7 @@ export function CreateProjectModal({ open, onClose }: Props) {
         >
           <textarea
             id="project-description"
+            ref={descriptionRef}
             rows={3}
             className={`${controlClass(Boolean(errors.description))} py-2`}
             value={description}

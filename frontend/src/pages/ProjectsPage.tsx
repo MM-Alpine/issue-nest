@@ -11,12 +11,22 @@ import { useProjects } from '../features/projects/hooks';
 export function ProjectsPage() {
   const projects = useProjects();
   const [creating, setCreating] = useState(false);
+  const totalIssues = projects.data?.reduce((sum, project) => sum + project.issueCount, 0) ?? 0;
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 pb-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Projects</h1>
-        <Button onClick={() => setCreating(true)}>
+      <div className="flex flex-col gap-4 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Projects</h1>
+          <p className="pt-1 text-sm text-slate-500">
+            {projects.data
+              ? `${projects.data.length} ${projects.data.length === 1 ? 'project' : 'projects'} · ${totalIssues} ${
+                  totalIssues === 1 ? 'issue' : 'issues'
+                }`
+              : 'Your issue-tracking workspaces'}
+          </p>
+        </div>
+        <Button className="self-start sm:self-auto" onClick={() => setCreating(true)}>
           <PlusIcon />
           New project
         </Button>
@@ -43,17 +53,28 @@ export function ProjectsPage() {
               {/* The whole card is one link (docs/03 §5.3). */}
               <Link
                 to={`/projects/${project.id}`}
-                className="flex h-full flex-col gap-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 sm:p-6"
+                className="group flex h-full flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md sm:p-5"
               >
-                <span className="font-mono text-xs text-slate-500">{project.key}</span>
-                <h2 className="text-base font-semibold text-slate-900">{project.name}</h2>
-                <p className="line-clamp-2 flex-1 text-sm text-slate-500">
-                  {project.description ?? 'No description'}
-                </p>
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs font-medium text-slate-600">
+                    {project.key}
+                  </span>
                   <RoleChip role={project.role} />
-                  <span className="text-xs text-slate-500">
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base font-semibold text-slate-900 group-hover:text-indigo-700">
+                    {project.name}
+                  </h2>
+                  <p className="line-clamp-2 pt-1 text-sm text-slate-500">
+                    {project.description ?? 'No description'}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                  <span className="text-xs font-medium text-slate-600">
                     {project.issueCount} {project.issueCount === 1 ? 'issue' : 'issues'}
+                  </span>
+                  <span className="text-xs text-slate-400 transition-colors group-hover:text-indigo-600">
+                    View
                   </span>
                 </div>
               </Link>

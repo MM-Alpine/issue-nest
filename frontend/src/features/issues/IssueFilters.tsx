@@ -22,7 +22,7 @@ interface Props {
   hasActiveFilters: boolean;
 }
 
-const selectClass = `${controlClass()} h-9 pr-8`;
+const selectClass = `${controlClass()} h-9 pr-8 sm:w-[10.5rem]`;
 
 export function IssueFilters({ params, members, onChange, onClear, hasActiveFilters }: Props) {
   const [search, setSearch] = useState(params.q ?? '');
@@ -43,14 +43,15 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
 
   const sortValue = `${params.sort ?? 'createdAt'}:${params.order ?? 'desc'}`;
 
-  const controls = (
+  const renderControls = (idPrefix: string, autoFocus = false) => (
     <>
-      <label className="sr-only" htmlFor="filter-status">
+      <label className="sr-only" htmlFor={`${idPrefix}-status`}>
         Status
       </label>
       <select
-        id="filter-status"
+        id={`${idPrefix}-status`}
         className={selectClass}
+        data-autofocus={autoFocus || undefined}
         value={params.status ?? ''}
         onChange={(e) => onChange({ status: asOneOf(e.target.value, ISSUE_STATUSES) })}
       >
@@ -62,11 +63,11 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         ))}
       </select>
 
-      <label className="sr-only" htmlFor="filter-priority">
+      <label className="sr-only" htmlFor={`${idPrefix}-priority`}>
         Priority
       </label>
       <select
-        id="filter-priority"
+        id={`${idPrefix}-priority`}
         className={selectClass}
         value={params.priority ?? ''}
         onChange={(e) => onChange({ priority: asOneOf(e.target.value, ISSUE_PRIORITIES) })}
@@ -79,11 +80,11 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         ))}
       </select>
 
-      <label className="sr-only" htmlFor="filter-assignee">
+      <label className="sr-only" htmlFor={`${idPrefix}-assignee`}>
         Assignee
       </label>
       <select
-        id="filter-assignee"
+        id={`${idPrefix}-assignee`}
         className={selectClass}
         value={params.assignee ?? ''}
         onChange={(e) => onChange({ assignee: e.target.value || undefined })}
@@ -97,11 +98,11 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         ))}
       </select>
 
-      <label className="sr-only" htmlFor="filter-sort">
+      <label className="sr-only" htmlFor={`${idPrefix}-sort`}>
         Sort
       </label>
       <select
-        id="filter-sort"
+        id={`${idPrefix}-sort`}
         className={selectClass}
         value={sortValue}
         onChange={(e) => {
@@ -122,9 +123,9 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
   );
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3">
+    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm md:sticky md:top-[4.5rem] md:z-20">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+        <div className="relative min-w-[12rem] flex-1 lg:max-w-xs">
           <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400">
             <SearchIcon />
           </span>
@@ -142,14 +143,16 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         </div>
 
         {/* Inline from 640px; behind a sheet below it (docs/03 §8). */}
-        <div className="hidden flex-wrap items-center gap-2 sm:flex">{controls}</div>
+        <div className="hidden flex-wrap items-center gap-2 sm:flex">
+          {renderControls('filter-inline')}
+        </div>
 
         <Button variant="secondary" className="sm:hidden" onClick={() => setSheetOpen(true)}>
           Filters
         </Button>
 
         {hasActiveFilters && (
-          <Button variant="ghost" onClick={onClear}>
+          <Button variant="ghost" className="sm:ml-auto" onClick={onClear}>
             Clear filters
           </Button>
         )}
@@ -161,7 +164,7 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
         title="Filters"
         footer={<Button onClick={() => setSheetOpen(false)}>Done</Button>}
       >
-        <div className="flex flex-col gap-3">{controls}</div>
+        <div className="flex flex-col gap-3">{renderControls('filter-sheet', true)}</div>
       </Modal>
     </div>
   );

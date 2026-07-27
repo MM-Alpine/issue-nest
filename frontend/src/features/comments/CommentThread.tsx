@@ -68,7 +68,7 @@ export function CommentThread({ issueId }: { issueId: string }) {
         <EmptyState title="No comments yet" description="Start the conversation." />
       ) : (
         /* Oldest first — a thread reads downward (docs/05 §2.5). */
-        <ul className="flex flex-col divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+        <ul className="flex flex-col divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white shadow-sm">
           {comments.data.map((comment) => (
             <li key={comment.id} className="flex gap-3 p-4">
               <Avatar name={initials(comment.author.name)} />
@@ -84,7 +84,7 @@ export function CommentThread({ issueId }: { issueId: string }) {
         </ul>
       )}
 
-      <form className="flex flex-col gap-2" onSubmit={onSubmit}>
+      <form className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm" onSubmit={onSubmit}>
         <label htmlFor="comment-body" className="sr-only">
           Write a comment
         </label>
@@ -93,22 +93,29 @@ export function CommentThread({ issueId }: { issueId: string }) {
           rows={3}
           maxLength={5000}
           placeholder="Write a comment…"
-          className={`${controlClass()} py-2`}
+          className={`${controlClass()} min-h-28 resize-y border-0 py-3 shadow-none focus:border-0`}
           value={body}
           onChange={(e) => {
             setBody(e.target.value);
             setError(null);
           }}
         />
-        {error && <Alert>{error}</Alert>}
-        <Button
-          type="submit"
-          className="self-end"
-          disabled={body.trim().length === 0}
-          pending={addComment.isPending}
-        >
-          Comment
-        </Button>
+        <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-500">{body.trim().length}/5000</p>
+          <Button
+            type="submit"
+            className="self-end"
+            disabled={body.trim().length === 0}
+            pending={addComment.isPending}
+          >
+            Comment
+          </Button>
+        </div>
+        {error && (
+          <div className="border-t border-slate-200 px-3 py-3">
+            <Alert>{error}</Alert>
+          </div>
+        )}
       </form>
     </section>
   );

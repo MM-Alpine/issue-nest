@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as authApi from '../api/auth';
 import { ApiError } from '../api/client';
@@ -26,6 +26,9 @@ export function SignupPage() {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FieldState>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const nameRef = useRef<HTMLInputElement | null>(null);
+  const emailRef = useRef<HTMLInputElement | null>(null);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
 
   const mutation = useMutation({
     mutationFn: authApi.signup,
@@ -38,13 +41,20 @@ export function SignupPage() {
       if (error instanceof ApiError) {
         if (error.code === 'EMAIL_ALREADY_EXISTS') {
           setErrors({ email: 'That email is already registered. Log in instead?' });
+          window.requestAnimationFrame(() => emailRef.current?.focus());
           return;
         }
         if (error.details) {
-          setErrors({
+          const serverErrors = {
             name: error.fieldError('name'),
             email: error.fieldError('email'),
             password: error.fieldError('password'),
+          };
+          setErrors(serverErrors);
+          window.requestAnimationFrame(() => {
+            if (serverErrors.name) nameRef.current?.focus();
+            else if (serverErrors.email) emailRef.current?.focus();
+            else if (serverErrors.password) passwordRef.current?.focus();
           });
           return;
         }
@@ -67,7 +77,14 @@ export function SignupPage() {
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     setFormError(null);
-    if (!validate()) return;
+    if (!validate()) {
+      window.requestAnimationFrame(() => {
+        if (name.trim().length === 0) nameRef.current?.focus();
+        else if (!/^\S+@\S+\.\S+$/.test(email.trim())) emailRef.current?.focus();
+        else passwordRef.current?.focus();
+      });
+      return;
+    }
     mutation.mutate({ name: name.trim(), email: email.trim(), password });
   };
 
@@ -75,7 +92,10 @@ export function SignupPage() {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
-      <h1 className="text-lg font-semibold text-slate-900">Create your account</h1>
+      <div>
+        <h1 className="text-xl font-semibold text-slate-900">Create your account</h1>
+        <p className="pt-1 text-sm text-slate-500">Start with your name, email, and password.</p>
+      </div>
 
       <Field id="name" label="Name" error={errors.name}>
         <input
@@ -83,6 +103,8 @@ export function SignupPage() {
           type="text"
           autoComplete="name"
           autoFocus
+          data-autofocus
+          ref={nameRef}
           className={inputClass(Boolean(errors.name))}
           value={name}
           aria-invalid={Boolean(errors.name)}
@@ -98,6 +120,7 @@ export function SignupPage() {
           id="email"
           type="email"
           autoComplete="email"
+          ref={emailRef}
           className={inputClass(Boolean(errors.email))}
           value={email}
           aria-invalid={Boolean(errors.email)}
@@ -118,6 +141,7 @@ export function SignupPage() {
           id="password"
           type="password"
           autoComplete="new-password"
+          ref={passwordRef}
           className={inputClass(Boolean(errors.password))}
           value={password}
           aria-invalid={Boolean(errors.password)}

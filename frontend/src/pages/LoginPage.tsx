@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import * as authApi from '../api/auth';
 import { ApiError } from '../api/client';
@@ -25,6 +25,8 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FieldState>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const emailRef = useRef<HTMLInputElement | null>(null);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
 
   const from = (location.state as { from?: string } | null)?.from ?? '/projects';
 
@@ -42,6 +44,12 @@ export function LoginPage() {
           email: error.fieldError('email'),
           password: error.fieldError('password'),
         });
+        if (error.fieldError('email') || error.fieldError('password')) {
+          window.requestAnimationFrame(() => {
+            if (error.fieldError('email')) emailRef.current?.focus();
+            else passwordRef.current?.focus();
+          });
+        }
         setFormError(error.details ? null : error.message);
         return;
       }
@@ -60,13 +68,22 @@ export function LoginPage() {
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     setFormError(null);
-    if (!validate()) return;
+    if (!validate()) {
+      window.requestAnimationFrame(() => {
+        if (!/^\S+@\S+\.\S+$/.test(email.trim())) emailRef.current?.focus();
+        else passwordRef.current?.focus();
+      });
+      return;
+    }
     mutation.mutate({ email: email.trim(), password });
   };
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
-      <h1 className="text-lg font-semibold text-slate-900">Log in</h1>
+      <div>
+        <h1 className="text-xl font-semibold text-slate-900">Log in</h1>
+        <p className="pt-1 text-sm text-slate-500">Continue to your projects and issue queues.</p>
+      </div>
 
       <Field id="email" label="Email" error={errors.email}>
         <input
@@ -75,6 +92,8 @@ export function LoginPage() {
           type="email"
           autoComplete="email"
           autoFocus
+          data-autofocus
+          ref={emailRef}
           className={inputClass(Boolean(errors.email))}
           value={email}
           aria-invalid={Boolean(errors.email)}
@@ -97,6 +116,7 @@ export function LoginPage() {
           name="password"
           type="password"
           autoComplete="current-password"
+          ref={passwordRef}
           className={inputClass(Boolean(errors.password))}
           value={password}
           aria-invalid={Boolean(errors.password)}

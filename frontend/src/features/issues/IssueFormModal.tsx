@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError } from '../../api/client';
 import type { CreateIssueInput, UpdateIssueInput } from '../../api/issues';
 import { Alert } from '../../components/Alert';
@@ -54,6 +54,7 @@ export function IssueFormModal({
   const [values, setValues] = useState<IssueFormValues>({ ...EMPTY, ...initial });
   const [titleError, setTitleError] = useState<string | undefined>();
   const [dirty, setDirty] = useState(false);
+  const titleRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -84,6 +85,7 @@ export function IssueFormModal({
 
     if (values.title.trim().length === 0) {
       setTitleError('Title is required');
+      window.requestAnimationFrame(() => titleRef.current?.focus());
       return;
     }
     setTitleError(undefined);
@@ -122,11 +124,13 @@ export function IssueFormModal({
         >
           <input
             id="issue-title"
+            ref={titleRef}
+            data-autofocus
             maxLength={200}
             autoFocus
-            className={inputClass(Boolean(titleError))}
+            className={inputClass(Boolean(titleError ?? apiError?.fieldError('title')))}
             value={values.title}
-            aria-invalid={Boolean(titleError)}
+            aria-invalid={Boolean(titleError ?? apiError?.fieldError('title'))}
             onChange={(e) => {
               update('title', e.target.value);
               setTitleError(undefined);

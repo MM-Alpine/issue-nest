@@ -57,8 +57,8 @@ export function ProjectDetailPage() {
         <span className="font-mono">{project.data?.key ?? '…'}</span>
       </nav>
 
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-6">
-        <div>
+      <div className="flex flex-col gap-4 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           {project.isPending ? (
             <>
               <Skeleton className="h-7 w-56" />
@@ -72,6 +72,9 @@ export function ProjectDetailPage() {
                 {project.data.memberCount}{' '}
                 {project.data.memberCount === 1 ? 'member' : 'members'}
               </p>
+              {project.data.description && (
+                <p className="max-w-2xl pt-2 text-sm text-slate-600">{project.data.description}</p>
+              )}
             </>
           )}
         </div>
@@ -98,12 +101,12 @@ export function ProjectDetailPage() {
         />
 
         {issues.data && (
-          <p className="text-xs text-slate-500" aria-live="polite">
+          <p className="text-xs font-medium text-slate-500" aria-live="polite">
             {issues.data.meta.total} {issues.data.meta.total === 1 ? 'issue' : 'issues'}
           </p>
         )}
 
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {issues.isPending ? (
             <SkeletonRows />
           ) : issues.isError ? (

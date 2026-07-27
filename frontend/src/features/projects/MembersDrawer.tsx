@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { ApiError } from '../../api/client';
 import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
@@ -30,6 +30,7 @@ export function MembersDrawer({ open, onClose, projectId, canAddMembers }: Props
   const [role, setRole] = useState<Role>('MEMBER');
   const [emailError, setEmailError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | null>(null);
+  const emailRef = useRef<HTMLInputElement | null>(null);
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -37,6 +38,7 @@ export function MembersDrawer({ open, onClose, projectId, canAddMembers }: Props
 
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
       setEmailError('Enter a valid email address');
+      window.requestAnimationFrame(() => emailRef.current?.focus());
       return;
     }
     setEmailError(undefined);
@@ -53,14 +55,20 @@ export function MembersDrawer({ open, onClose, projectId, canAddMembers }: Props
           if (error instanceof ApiError) {
             if (error.code === 'USER_NOT_FOUND') {
               setEmailError('No user with that email. They need to sign up first.');
+              window.requestAnimationFrame(() => emailRef.current?.focus());
               return;
             }
             if (error.code === 'ALREADY_MEMBER') {
               setEmailError('Already a member of this project.');
+              window.requestAnimationFrame(() => emailRef.current?.focus());
               return;
             }
             setEmailError(error.fieldError('email'));
-            if (!error.fieldError('email')) setFormError(error.message);
+            if (error.fieldError('email')) {
+              window.requestAnimationFrame(() => emailRef.current?.focus());
+            } else {
+              setFormError(error.message);
+            }
             return;
           }
           setFormError('Something went wrong. Please try again.');
@@ -90,9 +98,12 @@ export function MembersDrawer({ open, onClose, projectId, canAddMembers }: Props
           onRetry={() => void members.refetch()}
         />
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-2">
           {members.data?.map((member) => (
-            <li key={member.userId} className="flex items-center gap-3">
+            <li
+              key={member.userId}
+              className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5"
+            >
               <Avatar name={initials(member.name)} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-slate-900">{member.name}</p>
@@ -119,6 +130,8 @@ export function MembersDrawer({ open, onClose, projectId, canAddMembers }: Props
             <input
               id="member-email"
               type="email"
+              ref={emailRef}
+              data-autofocus
               className={inputClass(Boolean(emailError))}
               value={email}
               aria-invalid={Boolean(emailError)}

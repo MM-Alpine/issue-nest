@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const PREFERRED_FOCUSABLE =
+  '[data-autofocus], input[autofocus], select[autofocus], textarea[autofocus]';
 
 /**
  * Shared dialog behaviour for the modal and the drawer (docs/03 §9):
@@ -27,8 +29,11 @@ export function useDialog(open: boolean, onClose: () => void) {
     previouslyFocused.current = document.activeElement as HTMLElement | null;
 
     const panel = panelRef.current;
-    const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
-    (first ?? panel)?.focus();
+    const focusFrame = window.requestAnimationFrame(() => {
+      const preferred = panel?.querySelector<HTMLElement>(PREFERRED_FOCUSABLE);
+      const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
+      (preferred ?? first ?? panel)?.focus();
+    });
 
     const { overflow } = document.body.style;
     document.body.style.overflow = 'hidden';
@@ -59,6 +64,7 @@ export function useDialog(open: boolean, onClose: () => void) {
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = overflow;
       previouslyFocused.current?.focus();
     };

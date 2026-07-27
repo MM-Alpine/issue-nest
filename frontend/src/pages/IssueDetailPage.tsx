@@ -94,7 +94,7 @@ export function IssueDetailPage() {
   const metadata = (
     <aside
       aria-label="Issue metadata"
-      className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 lg:w-[280px] lg:shrink-0"
+      className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:w-[280px] lg:shrink-0 lg:grid-cols-1"
     >
       <div className="flex flex-col gap-1.5">
         <span className="text-xs font-medium text-slate-500">Status</span>
@@ -189,7 +189,7 @@ export function IssueDetailPage() {
         <span className="font-mono">{shortId(issue.id)}</span>
       </nav>
 
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4">
+      <div className="flex flex-col gap-4 pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold break-words text-slate-900">{issue.title}</h1>
           <div className="flex items-center gap-3 pt-2">
@@ -221,7 +221,7 @@ export function IssueDetailPage() {
             <h2 id="description-heading" className="pb-2 text-base font-semibold text-slate-900">
               Description
             </h2>
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               {issue.description ? (
                 <p className="text-sm whitespace-pre-wrap text-slate-800">{issue.description}</p>
               ) : (
