@@ -7,12 +7,10 @@ import { isTest } from '../config/env';
 export const logger = {
   error(message: string, meta?: unknown): void {
     if (isTest) return;
-    // eslint-disable-next-line no-console
     console.error(`[error] ${message}`, meta ?? '');
   },
   info(message: string): void {
     if (isTest) return;
-    // eslint-disable-next-line no-console
     console.info(`[info] ${message}`);
   },
 };

@@ -1,11 +1,12 @@
 import type { RequestHandler } from 'express';
+import type { ParamsDictionary } from 'express-serve-static-core';
 import { asyncHandler } from '../../lib/async-handler';
 import { currentUser } from '../../middleware/authenticate';
 import type { ProjectIdParams } from '../../shared/schemas';
 import type { AddMemberBody, CreateProjectBody } from './projects.schema';
 import * as projectsService from './projects.service';
 
-export const create: RequestHandler<unknown, unknown, CreateProjectBody> = asyncHandler(
+export const create: RequestHandler<ParamsDictionary, unknown, CreateProjectBody> = asyncHandler(
   async (req, res) => {
     const project = await projectsService.createProject(currentUser(req).id, req.body);
     res.status(201).json({ project });

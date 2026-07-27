@@ -2,6 +2,16 @@ import { IssuePriority, IssueStatus, Role } from '@prisma/client';
 import { hashPassword } from '../../src/lib/password';
 import { prisma } from '../../src/lib/prisma';
 
+// Duplicated from tests/setup/test-setup.ts on purpose: this module is imported by every
+// integration test, so the guard holds even if the suite is started WITHOUT
+// vitest.config.ts (e.g. `npx vitest` from the repo root), where nothing would otherwise
+// pin DATABASE_URL to the test database or truncate between tests.
+if (!(process.env.DATABASE_URL ?? '').includes('issuehub_test')) {
+  throw new Error(
+    'Test factories refuse to run outside issuehub_test. Run `npm test` from backend/ so vitest.config.ts applies.',
+  );
+}
+
 export const DEFAULT_PASSWORD = 'password123';
 
 let sequence = 0;

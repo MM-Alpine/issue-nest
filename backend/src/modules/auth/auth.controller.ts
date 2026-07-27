@@ -1,17 +1,18 @@
 import type { RequestHandler } from 'express';
+import type { ParamsDictionary } from 'express-serve-static-core';
 import { asyncHandler } from '../../lib/async-handler';
 import { currentUser } from '../../middleware/authenticate';
 import type { LoginBody, SignupBody } from './auth.schema';
 import * as authService from './auth.service';
 
-export const signup: RequestHandler<unknown, unknown, SignupBody> = asyncHandler(
+export const signup: RequestHandler<ParamsDictionary, unknown, SignupBody> = asyncHandler(
   async (req, res) => {
     const result = await authService.signup(req.body);
     res.status(201).json(result);
   },
 );
 
-export const login: RequestHandler<unknown, unknown, LoginBody> = asyncHandler(async (req, res) => {
+export const login: RequestHandler<ParamsDictionary, unknown, LoginBody> = asyncHandler(async (req, res) => {
   const result = await authService.login(req.body);
   res.status(200).json(result);
 });

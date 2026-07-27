@@ -116,7 +116,7 @@ describe('GET /api/projects', () => {
     const asha = await createUser();
     const stranger = await createUser();
     const older = await createProjectWith(asha.id, { name: 'Older', key: 'OLD' });
-    const newer = await createProjectWith(asha.id, { name: 'Newer', key: 'NEW' });
+    await createProjectWith(asha.id, { name: 'Newer', key: 'NEW' });
     await createProjectWith(stranger.id, { name: 'Private', key: 'PRV' });
     await createIssue(older.id, asha.id);
 

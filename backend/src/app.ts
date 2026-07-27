@@ -4,7 +4,9 @@ import { env } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import { notFoundHandler } from './middleware/not-found';
 import { authRouter, meRouter } from './modules/auth/auth.routes';
+import { commentsRouter } from './modules/comments/comments.routes';
 import { healthRouter } from './modules/health/health.routes';
+import { issuesRouter, projectIssuesRouter } from './modules/issues/issues.routes';
 import { projectsRouter } from './modules/projects/projects.routes';
 
 /**
@@ -25,7 +27,11 @@ export function buildApp(): Express {
   api.use('/health', healthRouter);
   api.use('/auth', authRouter);
   api.use('/me', meRouter);
+  // Nested mounts come first so the more specific path wins.
+  api.use('/projects/:projectId/issues', projectIssuesRouter);
   api.use('/projects', projectsRouter);
+  api.use('/issues/:issueId/comments', commentsRouter);
+  api.use('/issues', issuesRouter);
 
   app.use('/api', api);
 
