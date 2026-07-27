@@ -1,0 +1,92 @@
+@import 'tailwindcss';
+
+/* Light theme only, system font stack, no web-font download (docs/03 §2). */
+@theme {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-slate-50 font-sans text-sm leading-relaxed text-slate-900 antialiased;
+}
+
+/* Every interactive element keeps a visible focus ring (docs/03 §9). */
+:focus-visible {
+  @apply outline-none ring-2 ring-indigo-500 ring-offset-1;
+}
+
+/* Honour the OS preference: transforms off, opacity kept (docs/03 §10). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .motion-scale {
+    transform: none !important;
+  }
+}
+
+@keyframes issuehub-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes issuehub-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes issuehub-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes issuehub-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: issuehub-fade-in 150ms ease-out;
+}
+
+.animate-panel-in {
+  animation: issuehub-panel-in 150ms ease-out;
+}
+
+.animate-drawer-in {
+  animation: issuehub-drawer-in 200ms ease-out;
+}
+
+.animate-toast-in {
+  animation: issuehub-toast-in 150ms ease-out;
+}
