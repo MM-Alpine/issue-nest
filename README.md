@@ -1,430 +1,383 @@
 # IssueHub
 
-A lightweight, multi-project bug tracker. Sign up, create a project, add teammates by email, file
-issues with a status, priority and assignee, search and filter them, and discuss each one in a
-comment thread.
+IssueHub is a lightweight, multi-project issue tracker for small teams. Users can create projects,
+manage project membership, file issues, assign work, track status and priority, search and filter
+issue lists, and discuss issues through comments.
 
-Submitted as a take-home assignment. The emphasis is correctness, clean layering, **server-side
-permissions proven by tests**, safe migrations, and a repository you can run in under ten minutes.
+The application is split into two independently runnable services:
 
-- **Backend:** Node 20+ · Express 5 · TypeScript (strict) · Prisma 6 · PostgreSQL 16 · Zod · JWT · Vitest + Supertest
-- **Frontend:** React 19 · Vite 6 · TypeScript · React Router 7 · TanStack Query 5 · Tailwind 4
+- **Backend:** Node.js 20, Express 5, TypeScript, Prisma, PostgreSQL, Zod, JWT, Vitest, Supertest
+- **Frontend:** React 19, Vite, TypeScript, React Router, TanStack Query, Tailwind CSS
 
 ---
 
 ## Features
 
-| Area | What works |
+| Area | Capabilities |
 |---|---|
-| **Auth** | Signup, login, logout, session restore on reload. Passwords stored only as a bcrypt hash. JWT bearer auth. Protected routes on both the server and the client |
-| **Projects** | Create a project (the creator becomes its maintainer atomically), list the projects you belong to, project detail, add a member by email with a chosen role, list members |
-| **Issues** | Create, list, view, edit, delete. Assign and reassign. Change status and priority |
-| **Issue list** | Title search (case-insensitive), filter by status, priority and assignee (including *unassigned*), sort by created date, priority or status in either direction, paginated with `{ page, pageSize, total, totalPages }` |
-| **Comments** | One thread per issue, oldest first, with author and timestamp |
-| **Roles** | `MEMBER` and `MAINTAINER`, scoped **per project** and enforced server-side — see the [permission matrix](#permissions) |
-| **UI** | Loading, empty, error and content states on every data view · inline form validation · toasts on every mutation · usable from 360px to 1280px |
-| **Quality** | Docker Postgres with separate dev and test databases · committed Prisma migrations · seed script · 172 backend tests · coverage reporting · CI |
-
-Not built, deliberately: password reset, email sending, attachments, labels, audit log, notifications,
-comment editing, member removal, project editing, and anything else on the out-of-scope list. See
-[Known limitations](#known-limitations).
+| Authentication | Signup, login, logout, session restore, protected routes |
+| Projects | Create projects, list accessible projects, view project details |
+| Members | List project members, add members by email, assign per-project roles |
+| Issues | Create, view, update, delete, assign, prioritize, and change status |
+| Issue List | Search by title, filter by status/priority/assignee, sort, paginate |
+| Comments | Oldest-first comment threads with author and timestamp |
+| Permissions | Project-scoped `MEMBER` and `MAINTAINER` roles enforced server-side |
+| UI States | Loading, empty, error, validation, success, and responsive states |
 
 ---
 
-## Quick start
+## Quick Start
 
-Prerequisites: **Node 20+**, **npm**, and **Docker** (for PostgreSQL).
+### Prerequisites
+
+- Node.js 20+
+- npm
+- Docker
+
+### 1. Start PostgreSQL
 
 ```bash
-# 1. Database — one container serving issuehub_dev and issuehub_test
 docker compose up -d
+```
 
-# 2. Backend
+The compose setup creates both development and test databases:
+
+- `issuehub_dev`
+- `issuehub_test`
+
+### 2. Start the Backend
+
+```bash
 cd backend
 npm install
 cp .env.example .env
 npm run prisma:generate
-npm run db:migrate:deploy      # applies the committed migrations
-npm run db:seed                # demo data
-npm run dev                    # → http://localhost:4000
+npm run db:migrate:deploy
+npm run db:seed
+npm run dev
+```
 
-# 3. Frontend (second terminal)
+Backend URL: `http://localhost:4000`
+
+### 3. Start the Frontend
+
+```bash
 cd frontend
 npm install
 cp .env.example .env
-npm run dev                    # → http://localhost:5173
+npm run dev
 ```
 
-Open <http://localhost:5173> and log in with one of the accounts below.
-(`./scripts/setup.sh` does the same setup in one command, if you prefer.)
+Frontend URL: `http://localhost:5173`
 
-### Demo credentials
+### Demo Accounts
 
-Created by `npm run db:seed`. Seed fixtures, not secrets.
+Created by `npm run db:seed`.
 
-| Email | Password | Role |
+| Email | Password | Access |
 |---|---|---|
-| `asha@example.com` | `password123` | **MAINTAINER** of both projects — sees every control |
-| `ravi@example.com` | `password123` | MEMBER of `WEB` |
-| `mei@example.com` | `password123` | MEMBER of `API` |
-
-**To see permissions at work in 30 seconds:** open a `WEB` issue as **Asha** (status and assignee
-are editable, Delete is offered), then as **Ravi** (those controls are not rendered, and the API
-rejects the requests too — proven by the tests, not just hidden in the UI).
+| `asha@example.com` | `password123` | Maintainer on seeded projects |
+| `ravi@example.com` | `password123` | Member on `WEB` |
+| `mei@example.com` | `password123` | Member on `API` |
 
 ---
 
-## Commands
+## Scripts
 
-Two independent applications, each with its own `package.json`. There is no root runner and no
-monorepo tool, deliberately — each app is independently runnable.
+### Root Helpers
 
-### `backend/`
-
-| Command | What it does |
+| Command | Description |
 |---|---|
-| `npm run dev` | Dev server on `:4000` (`tsx watch`) |
-| `npm run build` / `npm start` | Compile to `dist/` and run it |
-| `npm test` | All 172 tests (**needs Docker Postgres up**) |
-| `npm run test:unit` | Unit tests only — no database required |
-| `npm run test:coverage` | Coverage report |
-| `npm run typecheck` / `npm run lint` | Type and lint checks |
-| `npm run prisma:generate` | Regenerate Prisma Client |
-| `npm run db:migrate:dev` | Create **and** apply a new migration (development only) |
-| `npm run db:migrate:deploy` | Apply committed migrations (CI, tests, any non-dev database) |
-| `npm run db:seed` | Seed demo data (idempotent — safe to re-run) |
+| `./scripts/setup.sh` | Start Docker, install dependencies, generate Prisma client, run migrations, seed data |
+| `./scripts/verify.sh` | Fast backend typecheck and unit-test pass |
+| `./scripts/check.sh` | Full quality gate for backend and frontend |
+| `./scripts/db-verify.sh` | Rebuilds the development database from committed migrations |
 
-### `frontend/`
+### Backend
 
-| Command | What it does |
+Run from `backend/`.
+
+| Command | Description |
 |---|---|
-| `npm run dev` | Vite dev server on `:5173` |
-| `npm run build` / `npm run preview` | Production build, then serve it |
-| `npm run typecheck` / `npm run lint` | Type and lint checks |
+| `npm run dev` | Start the API in watch mode |
+| `npm run build` | Compile TypeScript to `dist/` |
+| `npm start` | Run the compiled API |
+| `npm run typecheck` | Type-check backend code |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run unit and integration tests |
+| `npm run test:unit` | Run database-free unit tests |
+| `npm run test:coverage` | Run tests with coverage |
+| `npm run prisma:generate` | Generate Prisma Client |
+| `npm run db:migrate:dev` | Create and apply a development migration |
+| `npm run db:migrate:deploy` | Apply committed migrations |
+| `npm run db:seed` | Seed demo data |
 
-### Helper scripts
+### Frontend
 
-| Script | What it does |
+Run from `frontend/`.
+
+| Command | Description |
 |---|---|
-| `./scripts/setup.sh` | Docker up, install, generate, migrate and seed, for both apps |
-| `./scripts/check.sh` | Everything CI runs: backend typecheck, lint and tests · frontend typecheck, lint and build |
-| `./scripts/verify.sh` | Quick subset: backend typecheck plus the database-free unit tests |
-| `./scripts/db-verify.sh` | **Destructive.** Drops `issuehub_dev` and proves the committed migrations rebuild it from empty |
+| `npm run dev` | Start Vite dev server |
+| `npm run build` | Type-check and build the production bundle |
+| `npm run preview` | Serve the production build locally |
+| `npm run typecheck` | Type-check frontend code |
+| `npm run lint` | Run ESLint |
 
 ---
 
-## Environment variables
+## Environment
 
-`backend/.env` (copy from `.env.example`; only the example is committed):
+### Backend
 
-| Variable | Example | Purpose |
-|---|---|---|
-| `DATABASE_URL` | `postgresql://issuehub:issuehub@localhost:5432/issuehub_dev?schema=public` | Dev database |
-| `TEST_DATABASE_URL` | `postgresql://issuehub:issuehub@localhost:5432/issuehub_test?schema=public` | Test database — **must** be `issuehub_test` |
-| `JWT_SECRET` | `change-me-in-production-min-32-characters-long` | HS256 key, **≥32 characters, enforced at boot** |
-| `JWT_EXPIRES_IN` | `1d` | Token lifetime |
-| `PORT` | `4000` | API port |
-| `CORS_ORIGIN` | `http://localhost:5173` | Allowed browser origin |
-| `NODE_ENV` | `development` | `development` \| `test` \| `production` |
+Copy `backend/.env.example` to `backend/.env`.
 
-`frontend/.env`: `VITE_API_URL=http://localhost:4000`.
-
-`backend/src/config/env.ts` parses `process.env` with Zod at boot and exits with a readable message
-if anything is missing or malformed, so a misconfigured process fails immediately rather than on the
-first request.
-
----
-
-## Migrations
-
-The schema is created **only** from the committed migration files in `backend/prisma/migrations/`.
-
-| Command | When to use it |
+| Variable | Description |
 |---|---|
-| `prisma generate` | After editing `schema.prisma`, and after a fresh `npm install` |
-| `prisma migrate dev --name <name>` | Development: create a migration from schema changes and apply it |
-| `prisma migrate deploy` | CI, tests, any non-development database — applies committed files only |
-| `prisma migrate reset` | Local only: drop, recreate, replay all migrations, re-seed |
-| `prisma db push` | **Never used.** It bypasses migration history |
+| `DATABASE_URL` | PostgreSQL connection string for development |
+| `TEST_DATABASE_URL` | PostgreSQL connection string for tests |
+| `JWT_SECRET` | HS256 signing secret, minimum 32 characters |
+| `JWT_EXPIRES_IN` | JWT lifetime |
+| `PORT` | API port |
+| `CORS_ORIGIN` | Allowed frontend origin |
+| `NODE_ENV` | Runtime environment |
 
-Migrations are committed, an applied migration is never edited, and every schema change gets its own
-named migration. `migrate reset` was run before submission to confirm a clean database can be built
-from the committed chain alone.
+The backend validates environment variables at startup with Zod and exits early on invalid
+configuration.
 
-**Enum declaration order is load-bearing.** PostgreSQL sorts enum values by declaration order, and
-that is what makes `sort=priority&order=desc` return `CRITICAL` first instead of sorting
-alphabetically. A test asserts the actual value order in the database.
+### Frontend
 
-> If `issuehub_test` is missing, the Postgres init script did not run — it only runs on an empty
-> volume. Fix it with `docker compose down -v && docker compose up -d`.
+Copy `frontend/.env.example` to `frontend/.env`.
 
----
-
-## Testing
-
-```bash
-cd backend
-npm test                # 172 tests
-npm run test:coverage
-```
-
-**172 tests passing, 97.7% line coverage** (the goal was ~70%, higher on auth, permissions and
-services).
-
-- **Unit tests** cover pure logic only: password hashing, JWT sign/verify including expiry,
-  pagination maths, the issue `where`/`orderBy` builders, and the field-level permission rule across
-  every role × field × ownership combination.
-- **Integration tests** drive the real Express app with Supertest against a **real PostgreSQL**
-  database. Prisma is never mocked, because the permission and query behaviour under test *is*
-  database behaviour.
-- The test schema is built by `prisma migrate deploy` against `TEST_DATABASE_URL`, so it always comes
-  from committed migrations. There is no hand-written DDL in the test setup.
-- Tables are truncated before each test, and test files run sequentially because they share one
-  database. Two independent guards refuse to run the suite unless `DATABASE_URL` points at
-  `issuehub_test`, so it can never touch your dev data.
-- A migration test asserts that the committed migrations produce the five expected tables, the three
-  enum types **in their documented value order**, the composite primary key on `ProjectMember`, and
-  the issue-list indexes.
-
-Covered end to end by the integration suite: every endpoint, every status code in the contract, the
-whole permission matrix, the search/filter/sort/pagination behaviour, and the error envelope
-(including that a forced internal error returns no stack trace and no Prisma text).
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Backend API base URL |
 
 ---
 
 ## Architecture
 
-```
-frontend (Vite :5173)  ──  Authorization: Bearer JWT  ──▶  backend (Express :4000)  ──▶  PostgreSQL 16
-   React Router                { data } | { error }          middleware → routes
-   TanStack Query                                            → controllers → services → Prisma
-   AuthContext + localStorage
+```text
+React SPA (:5173)
+  -> fetch client with Bearer JWT
+  -> Express API (:4000)
+  -> Prisma Client
+  -> PostgreSQL 16
 ```
 
-```
+### Backend Structure
+
+```text
 backend/src/
-  config/env.ts     Zod-parsed environment, fails fast at boot
-  lib/              prisma singleton · errors · password · jwt · asyncHandler
-  middleware/       authenticate · validate · error-handler · not-found
-  modules/          auth · projects · issues · comments · health  (routes/controller/service/schema)
-  shared/           permissions · pagination · selectors · schemas
-  app.ts            buildApp() — no listen(), so Supertest can drive the real app in-process
-frontend/src/
-  api/              fetch wrapper + one module per resource
-  components/       Button Field Modal Drawer Toast Skeleton Pagination States icons
-  features/         auth · projects · issues · comments  (hooks + feature components)
-  layouts/ pages/ routes/ types/ utils/
+  config/          environment validation
+  lib/             Prisma, JWT, password hashing, errors, logging
+  middleware/      auth, validation, error handling, not found handling
+  modules/         auth, projects, issues, comments, health
+  shared/          selectors, permissions, pagination, shared schemas
+  app.ts           Express app factory
+  server.ts        process entry point
 ```
 
-**Request pipeline:** `cors → express.json → router → authenticate → validate(zod) → controller →
-service (Prisma) → errorHandler`.
+Request flow:
 
-**Layer rules:** controllers are thin — they never touch Prisma and contain no role checks. Services
-own authorization, business rules and Prisma access, and throw typed `AppError`s. There is
-deliberately **no DAO/repository layer**: Prisma Client already *is* the data-access layer, so a
-hand-written wrapper at this size would be indirection for its own sake. This is a conscious
-deviation from the assignment's `routes/services/dao/models` hint.
+```text
+cors -> express.json -> router -> authenticate -> validate -> controller -> service -> Prisma
+```
 
-Two operations need atomicity and use a transaction: creating a project together with the creator's
-maintainer membership (a project must never exist without a maintainer), and the issue list's
-`findMany` + `count` pair at `REPEATABLE READ` (so the pagination total can never disagree with the
-page returned).
+Controllers handle HTTP concerns. Services own business rules, authorization checks, and database
+operations.
 
-### Permissions
+### Frontend Structure
 
-Two roles, scoped **per project** — a user can be a maintainer of one project and a member of
-another. All membership logic lives in `backend/src/shared/permissions.ts` and nowhere else.
+```text
+frontend/src/
+  api/             API client and resource modules
+  components/      shared UI primitives
+  features/        auth, projects, issues, comments
+  layouts/         application and auth layouts
+  pages/           route-level screens
+  routes/          React Router configuration
+  types/           API-facing TypeScript types
+  utils/           labels and formatting helpers
+```
 
-| Action | Non-member | MEMBER (not reporter) | MEMBER (reporter) | MAINTAINER |
-|---|---|---|---|---|
-| View project / members / issues / comments | ✗ 404 | ✓ | ✓ | ✓ |
-| Create an issue | ✗ 404 | ✓ | ✓ | ✓ |
-| Add a comment | ✗ 404 | ✓ | ✓ | ✓ |
-| Update `title` / `description` / `priority` | ✗ 404 | ✗ 403 | ✓ | ✓ |
-| Update `status` or `assigneeId` (**including at creation**) | ✗ 404 | ✗ 403 | ✗ 403 | ✓ |
-| Delete an issue | ✗ 404 | ✗ 403 | ✗ 403 | ✓ |
-| Add a project member | ✗ 404 | ✗ 403 | ✗ 403 | ✓ |
+The frontend stores the JWT in `localStorage`, restores the session through `/api/me`, and uses
+TanStack Query for request state and cache invalidation.
 
-Two rules explain the whole table:
+---
 
-1. **Not a member → `404`, never `403`**, so a private project's existence is never confirmed.
-2. **A member with an insufficient role, or who is not the reporter → `403`**, with a message naming
-   the requirement.
+## Authorization Model
 
-Additionally, `assigneeId` must belong to the project, or the request fails with
-`422 ASSIGNEE_NOT_MEMBER`.
+Roles are scoped per project.
 
-The UI hides controls a viewer cannot use, but that is **usability, never a security control** — the
-server re-derives permission on every request, and the `viewerRole` it returns is advisory only. JWTs
-carry only `sub`, `iat` and `exp`, so roles are read from the database per request and a stale token
-can never carry stale permissions. `passwordHash` is never selected into a response, which a test
-asserts recursively.
+| Action | Non-member | Member | Reporter | Maintainer |
+|---|---:|---:|---:|---:|
+| View project, members, issues, comments | 404 | Yes | Yes | Yes |
+| Create issue | 404 | Yes | Yes | Yes |
+| Add comment | 404 | Yes | Yes | Yes |
+| Update title, description, priority | 404 | No | Yes | Yes |
+| Update status or assignee | 404 | No | No | Yes |
+| Delete issue | 404 | No | No | Yes |
+| Add project member | 404 | No | No | Yes |
 
-### API
+Important rules:
 
-Base URL `http://localhost:4000`. Full contract with request and response bodies:
-[docs/05](docs/05-backend-schema-api.md).
+- Non-members receive `404` to avoid exposing private project existence.
+- Authenticated members without enough permission receive `403`.
+- `assigneeId` must belong to the issue's project.
+- Password hashes are never returned by API responses.
+- UI permissions are usability only; the API re-checks every protected operation server-side.
 
-| Method | Path | Permission |
+---
+
+## API Overview
+
+Base URL: `http://localhost:4000`
+
+| Method | Path | Description |
 |---|---|---|
-| POST | `/api/auth/signup` | public |
-| POST | `/api/auth/login` | public |
-| POST | `/api/auth/logout` | any user (`204`, client-side token disposal) |
-| GET | `/api/me` | any user |
-| POST | `/api/projects` | any user (creator becomes maintainer) |
-| GET | `/api/projects` | membership-scoped |
-| GET | `/api/projects/:projectId` | member |
-| GET | `/api/projects/:projectId/members` | member |
-| POST | `/api/projects/:projectId/members` | maintainer |
-| GET | `/api/projects/:projectId/issues` | member |
-| POST | `/api/projects/:projectId/issues` | member (maintainer to set an assignee) |
-| GET | `/api/issues/:issueId` | member |
-| PATCH | `/api/issues/:issueId` | reporter (limited fields) or maintainer |
-| DELETE | `/api/issues/:issueId` | maintainer |
-| GET | `/api/issues/:issueId/comments` | member |
-| POST | `/api/issues/:issueId/comments` | member |
-| GET | `/api/health` | public (liveness + database ping) |
+| `POST` | `/api/auth/signup` | Create account |
+| `POST` | `/api/auth/login` | Authenticate and return JWT |
+| `POST` | `/api/auth/logout` | Logout endpoint |
+| `GET` | `/api/me` | Current authenticated user |
+| `GET` | `/api/health` | Health check |
+| `GET` | `/api/projects` | List accessible projects |
+| `POST` | `/api/projects` | Create project |
+| `GET` | `/api/projects/:projectId` | Project detail |
+| `GET` | `/api/projects/:projectId/members` | List members |
+| `POST` | `/api/projects/:projectId/members` | Add member |
+| `GET` | `/api/projects/:projectId/issues` | List issues |
+| `POST` | `/api/projects/:projectId/issues` | Create issue |
+| `GET` | `/api/issues/:issueId` | Issue detail |
+| `PATCH` | `/api/issues/:issueId` | Update issue |
+| `DELETE` | `/api/issues/:issueId` | Delete issue |
+| `GET` | `/api/issues/:issueId/comments` | List comments |
+| `POST` | `/api/issues/:issueId/comments` | Add comment |
 
-**Issue list query parameters:** `q` (case-insensitive title substring), `status`, `priority`,
-`assignee` (a user id or the literal `unassigned`), `sort` ∈ `createdAt|priority|status`, `order` ∈
-`asc|desc`, `page` ≥ 1, `pageSize` 1–100. Filters combine with AND. Invalid values are **rejected
-with `400`, never silently clamped.** A page past the end returns `200` with an empty array and an
-honest `meta`.
+Issue list query parameters:
 
-**Every error uses one envelope**, produced by one middleware:
+| Parameter | Description |
+|---|---|
+| `q` | Case-insensitive title search |
+| `status` | Filter by issue status |
+| `priority` | Filter by issue priority |
+| `assignee` | User id or `unassigned` |
+| `sort` | `createdAt`, `priority`, or `status` |
+| `order` | `asc` or `desc` |
+| `page` | Page number, starting at 1 |
+| `pageSize` | Page size, capped by API validation |
+
+All errors use the same envelope:
 
 ```json
-{ "error": { "code": "VALIDATION_ERROR", "message": "Invalid request body",
-             "details": { "title": ["Title is required"] } } }
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid request body",
+    "details": {
+      "title": ["Title is required"]
+    }
+  }
+}
 ```
 
-Unexpected failures are logged server-side with their stack and returned as
-`500 { "error": { "code": "INTERNAL_ERROR", "message": "Something went wrong" } }` — no stack
-traces, no Prisma text and no SQL ever reach the client.
-
 ---
 
-## Tech choices and trade-offs
+## Database and Migrations
 
-| Decision | Alternative | Why |
-|---|---|---|
-| Node + Express | FastAPI (the assignment's stated preference) | Both were offered. TypeScript end to end means one language and one mental model |
-| Prisma | Drizzle, Kysely, raw SQL | First-class migration tooling, a typed client, and a schema file a reviewer can read in one sitting |
-| Prisma Client directly in services | Repository/DAO layer | Prisma already *is* the data layer; a wrapper would add indirection without benefit at this size |
-| Zod | Joi, class-validator | Runtime validation and static types from a single declaration |
-| JWT in `localStorage` | httpOnly cookie + CSRF token | Simplest for a bearer API, and the assignment suggested Bearer. The XSS trade-off is documented below |
-| bcrypt (cost 10, 4 under test) | argon2 | Ubiquitous and adequate; the lower test cost keeps the suite fast |
-| Real PostgreSQL in tests | Mocked Prisma, or SQLite | The permission and query behaviour under test *is* database behaviour — mocking it would test nothing. Costs Docker as a prerequisite |
-| TanStack Query | Redux Toolkit Query, plain `useEffect` | Removes hand-rolled loading, error and cache code — exactly the states this UI has to show |
-| Tailwind | MUI, Chakra, shadcn | No bundle bloat and no theme API to fight, for a small design system |
-| Filter state in the URL | Component state | Shareable links, reload-safe, and a natural cache key |
-| Two `package.json` files | npm workspaces, Turborepo | Nothing to explain — each app runs on its own |
-| Hand-written frontend types | OpenAPI codegen, tRPC | One small types file beats a generator toolchain for 17 endpoints |
+Prisma schema: `backend/prisma/schema.prisma`
 
-Deliberately **not** used: Redis, queues, WebSockets, GraphQL, a DI container, Redux/Zustand, Axios,
-a component library, or any AI feature.
+Migration files: `backend/prisma/migrations/`
 
----
+Use committed migrations for schema changes:
 
-## Assumptions
-
-The assignment left these open; each was resolved deliberately. Full rationale in
-[docs/01 §10](docs/01-project-requirements.md).
-
-| # | Assumption |
-|---|---|
-| A1 | Node + Express + TypeScript, the second of the two offered stacks |
-| A2 | PostgreSQL everywhere, never SQLite, to avoid dialect drift and keep the tests honest |
-| A3 | Prisma Migrate is the Node equivalent of Alembic / Django migrations |
-| A4, A6 | Only maintainers delete issues — not even the reporter. Deletion is unrecoverable, so the safer bound was chosen |
-| A5, A15 | Reporters may change `title`, `description` and `priority` only. `status` and `assigneeId` are maintainer-only, **including at creation** |
-| A7 | Non-members get `404`, not `403`, so private projects stay invisible |
-| A8 | Project `key` is globally unique and uppercase, `^[A-Z][A-Z0-9]{1,9}$` |
-| A9 | An added member must already have an account — no email is sent, so there is no invitation record |
-| A10 | Memberships cannot be removed and roles cannot be changed after adding |
-| A11 | Logout is client-side token disposal; `POST /api/auth/logout` returns `204` |
-| A12 | The JWT is stored in `localStorage` |
-| A13 | Validation failures are `400`. `422` is reserved for exactly one case: an assignee outside the project |
-| A14 | Invalid `page` / `pageSize` are rejected, not clamped |
-| A16 | Statuses move freely between all four values — no workflow state machine |
-| A17 | Deleting an issue cascades its comments; deleting a user is not supported |
-| A18 | Identifiers are CUIDs |
-
----
-
-## Known limitations
-
-Conscious scope decisions, not oversights.
-
-**Security** — these are the ones I would fix first in a real product:
-
-- **No server-side token revocation.** Bearer JWTs are stateless, so a token that leaked before
-  logout stays valid until it expires.
-- **The JWT in `localStorage` is exposed to XSS.** An httpOnly `SameSite` cookie plus CSRF
-  protection is the production answer.
-- **No rate limiting or brute-force protection** on login, and no `helmet` security headers.
-
-**Features not built** — password reset, email sending and real invitations · member removal or role
-changes after adding · project editing or deletion · comment editing or deletion · issue history,
-audit log, attachments, labels and notifications · dark mode and internationalisation.
-
-**Testing** — there is **no frontend test suite**. The assignment asked for backend tests, so that
-time went into backend coverage instead; the full request flow is covered end to end by the
-integration suite.
-
-**Scale** — everything below is invisible at the size this app targets, and each has a known fix:
-
-- Title search is a case-insensitive `contains` on the title only, with no supporting index. A
-  `pg_trgm` GIN index is the fix once a single project holds thousands of issues.
-- Comments are not paginated.
-- `issueCount` on the projects list is a per-row count, which would need batching for a user in
-  hundreds of projects.
-- `Issue.reporterId`, `Issue.assigneeId` and `Comment.authorId` have no standalone index. Harmless
-  today because no endpoint deletes a user, so those referential checks never run; a user-deletion
-  feature should add the indexes in the same migration.
-
-**Dependencies** — `react-router-dom` 7.18.1 falls inside advisory `GHSA-qwww-vcr4-c8h2`, which
-concerns React Router's RSC mode. It is not reachable here: this is a plain client-rendered
-declarative router with no RSC mode and no server actions, and the fix lands only in v8, outside the
-React Router 7 stack this project targets. The remaining `npm audit` findings in both apps are
-dev-only toolchain transitives and are absent from the runtime path.
-
-## With more time
-
-1. Refresh tokens with rotation and a revocation list, and move the access token to an httpOnly cookie.
-2. Rate limiting and `helmet`, then an audit log of status and assignee changes.
-3. A small Playwright suite covering the happy path and the member-versus-maintainer split in the UI.
-4. Per-project issue keys (`WEB-1`) via a sequence, which reviewers expect from a tracker.
-5. Member removal and role changes, with "a project must keep at least one maintainer" enforced in a transaction.
-6. Full-text search over title and description with a `tsvector` column and a GIN index.
-7. Optimistic updates on the status and assignee selects, so triage feels instant.
-8. A deployed demo with the credentials above.
-
----
-
-## Repository layout
-
-```
-backend/                  Express API — Prisma schema, committed migrations, seed script, tests
-frontend/                 React single-page app
-docs/                     Design documents 01–06, written before implementation
-docker/                   Postgres init script that creates issuehub_test
-scripts/                  Helper scripts (setup, check, verify, migration safety)
-.github/workflows/ci.yml  CI — migrate deploy, typecheck, lint, tests against a Postgres service
-docker-compose.yml        PostgreSQL 16
+```bash
+cd backend
+npm run db:migrate:dev -- --name <migration_name>
 ```
 
-Also in the repository, and **not part of the application**: `AGENTS.md`, `CLAUDE.md`, `.claude/` and
-`.codex/` hold repository conventions and guardrails for AI coding tools, `docs/architecture/`
-records the invariants those tools must respect, and `Fullstack assignment.doc` is the original brief
-kept for reference.
+Apply existing migrations:
 
-### Design documents
+```bash
+cd backend
+npm run db:migrate:deploy
+```
 
-Written before any code, and the specification the implementation follows:
-[requirements](docs/01-project-requirements.md) ·
-[technical](docs/02-technical-requirements.md) ·
-[UI/UX](docs/03-ui-ux-design.md) ·
-[flows](docs/04-application-flow.md) ·
-[schema & API](docs/05-backend-schema-api.md) ·
-[plan](docs/06-implementation-plan.md)
+Regenerate Prisma Client after schema changes:
+
+```bash
+cd backend
+npm run prisma:generate
+```
+
+---
+
+## Testing and Quality
+
+Run the full project quality gate:
+
+```bash
+./scripts/check.sh
+```
+
+Run backend tests directly:
+
+```bash
+cd backend
+npm test
+```
+
+Run frontend checks directly:
+
+```bash
+cd frontend
+npm run typecheck
+npm run lint
+npm run build
+```
+
+The backend test suite includes:
+
+- Unit tests for pure logic and permission rules
+- Integration tests through the real Express app
+- PostgreSQL-backed test database
+- Migration verification
+- Error-envelope and authorization coverage
+
+---
+
+## Production Build
+
+Backend:
+
+```bash
+cd backend
+npm run build
+npm start
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run build
+npm run preview
+```
+
+For production deployment, configure environment variables explicitly and run database migrations
+with `npm run db:migrate:deploy` before starting the API.
+
+---
+
+## Repository Layout
+
+```text
+backend/                 Express API, Prisma schema, migrations, seed data, tests
+frontend/                React single-page application
+docker/                  PostgreSQL initialization scripts
+docs/                    Technical and product documentation
+scripts/                 Setup, verification, and quality-gate scripts
+docker-compose.yml       Local PostgreSQL 16 setup
+```
+
+Additional technical documentation is available in `docs/`.
