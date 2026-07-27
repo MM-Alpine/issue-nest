@@ -42,9 +42,16 @@ export function CommentThread({ issueId }: { issueId: string }) {
 
   return (
     <section aria-labelledby="comments-heading" className="flex flex-col gap-4">
-      <h2 id="comments-heading" className="text-base font-semibold text-slate-900">
-        Comments{comments.data ? ` · ${comments.data.length}` : ''}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="comments-heading" className="text-base font-semibold text-slate-900">
+          Comments{comments.data ? ` · ${comments.data.length}` : ''}
+        </h2>
+        {comments.isFetching && !comments.isPending && (
+          <span className="text-xs text-slate-400" role="status">
+            Updating...
+          </span>
+        )}
+      </div>
 
       {comments.isPending ? (
         <div className="flex flex-col gap-4" role="status" aria-busy="true">
@@ -70,7 +77,7 @@ export function CommentThread({ issueId }: { issueId: string }) {
         /* Oldest first — a thread reads downward (docs/05 §2.5). */
         <ul className="flex flex-col divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white shadow-sm">
           {comments.data.map((comment) => (
-            <li key={comment.id} className="flex gap-3 p-4">
+            <li key={comment.id} className="flex gap-3 p-4 transition-colors hover:bg-slate-50/70">
               <Avatar name={initials(comment.author.name)} />
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-slate-500">
@@ -85,6 +92,10 @@ export function CommentThread({ issueId }: { issueId: string }) {
       )}
 
       <form className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm" onSubmit={onSubmit}>
+        <div className="border-b border-slate-100 px-4 py-3">
+          <p className="text-sm font-semibold text-slate-900">Add a comment</p>
+          <p className="pt-0.5 text-xs text-slate-500">Comments are visible to project members.</p>
+        </div>
         <label htmlFor="comment-body" className="sr-only">
           Write a comment
         </label>

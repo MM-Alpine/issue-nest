@@ -12,6 +12,19 @@ export function StatusBadge({ status }: { status: IssueStatus }) {
   );
 }
 
+export function StatusDot({ status }: { status: IssueStatus }) {
+  const dotClassName =
+    status === 'IN_PROGRESS'
+      ? 'bg-blue-500'
+      : status === 'RESOLVED'
+        ? 'bg-emerald-500'
+        : status === 'CLOSED'
+          ? 'bg-slate-400'
+          : 'bg-slate-500';
+
+  return <span className={`h-2 w-2 shrink-0 rounded-full ${dotClassName}`} aria-hidden="true" />;
+}
+
 /** Coloured dot PLUS the word, so priority reads without colour (docs/03 §3). */
 export function PriorityBadge({ priority }: { priority: IssuePriority }) {
   const { label, dotClassName } = PRIORITY_META[priority];
@@ -40,7 +53,7 @@ export function RoleChip({ role }: { role: Role }) {
 export function Avatar({ name }: { name: string }) {
   return (
     <span
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-semibold text-indigo-700"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-semibold text-indigo-700 ring-1 ring-indigo-200"
       aria-hidden="true"
     >
       {name}

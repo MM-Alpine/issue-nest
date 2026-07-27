@@ -47,13 +47,13 @@ export function ProjectsPage() {
           action={<Button onClick={() => setCreating(true)}>Create a project</Button>}
         />
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {projects.data.map((project) => (
             <li key={project.id}>
               {/* The whole card is one link (docs/03 §5.3). */}
               <Link
                 to={`/projects/${project.id}`}
-                className="group flex h-full flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md sm:p-5"
+                className="group flex h-full flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
               >
                 <div className="flex items-start justify-between gap-3">
                   <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs font-medium text-slate-600">
@@ -70,9 +70,14 @@ export function ProjectsPage() {
                   </p>
                 </div>
                 <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-                  <span className="text-xs font-medium text-slate-600">
-                    {project.issueCount} {project.issueCount === 1 ? 'issue' : 'issues'}
-                  </span>
+                  <div>
+                    <span className="block text-sm font-semibold text-slate-900">
+                      {project.issueCount}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {project.issueCount === 1 ? 'issue' : 'issues'}
+                    </span>
+                  </div>
                   <span className="text-xs text-slate-400 transition-colors group-hover:text-indigo-600">
                     View
                   </span>

@@ -8,10 +8,11 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
+  size?: 'sm' | 'lg';
 }
 
 /** Full-screen sheet below 640px, centred card above (docs/03 §8). */
-export function Modal({ open, onClose, title, children, footer }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, size = 'sm' }: ModalProps) {
   const titleId = useId();
   const panelRef = useDialog(open, onClose);
 
@@ -30,7 +31,9 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="animate-panel-in motion-scale relative flex max-h-full w-full flex-col overflow-hidden bg-white shadow-lg sm:max-w-lg sm:rounded-lg sm:border sm:border-slate-200"
+        className={`animate-panel-in motion-scale relative flex max-h-full w-full flex-col overflow-hidden bg-white shadow-lg sm:rounded-lg sm:border sm:border-slate-200 ${
+          size === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-lg'
+        }`}
       >
         <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-6">
           <h2 id={titleId} className="text-base font-semibold text-slate-900">

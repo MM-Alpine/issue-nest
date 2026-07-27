@@ -104,6 +104,7 @@ export function IssueFormModal({
       open={open}
       onClose={requestClose}
       title={mode === 'create' ? 'New issue' : 'Edit issue'}
+      size="lg"
       footer={
         <>
           <Button variant="ghost" onClick={requestClose}>
@@ -115,77 +116,92 @@ export function IssueFormModal({
         </>
       }
     >
-      <form id="issue-form" className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-        <Field
-          id="issue-title"
-          label="Title"
-          error={titleError ?? apiError?.fieldError('title')}
-          hint={`${values.title.length}/200`}
-        >
-          <input
-            id="issue-title"
-            ref={titleRef}
-            data-autofocus
-            maxLength={200}
-            autoFocus
-            className={inputClass(Boolean(titleError ?? apiError?.fieldError('title')))}
-            value={values.title}
-            aria-invalid={Boolean(titleError ?? apiError?.fieldError('title'))}
-            onChange={(e) => {
-              update('title', e.target.value);
-              setTitleError(undefined);
-            }}
-          />
-        </Field>
-
-        <Field
-          id="issue-description"
-          label="Description"
-          error={apiError?.fieldError('description')}
-          hint="Optional"
-        >
-          <textarea
-            id="issue-description"
-            rows={4}
-            maxLength={5000}
-            className={`${controlClass()} py-2`}
-            value={values.description}
-            onChange={(e) => update('description', e.target.value)}
-          />
-        </Field>
-
-        <Field id="issue-priority" label="Priority">
-          <select
-            id="issue-priority"
-            className={`${controlClass()} h-9`}
-            value={values.priority}
-            onChange={(e) => update('priority', e.target.value as IssuePriority)}
-          >
-            {ISSUE_PRIORITIES.map((priority) => (
-              <option key={priority} value={priority}>
-                {PRIORITY_META[priority].label}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        {canAssign && (
-          <Field id="issue-assignee" label="Assignee">
-            <select
-              id="issue-assignee"
-              className={`${controlClass()} h-9`}
-              value={values.assigneeId}
-              onChange={(e) => update('assigneeId', e.target.value)}
+      <form id="issue-form" className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
+        <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="flex min-w-0 flex-col gap-4">
+            <Field
+              id="issue-title"
+              label="Title"
+              error={titleError ?? apiError?.fieldError('title')}
+              hint={`${values.title.length}/200`}
             >
-              <option value="">Unassigned</option>
-              {members.map((member) => (
-                <option key={member.userId} value={member.userId}>
-                  {member.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        )}
+              <input
+                id="issue-title"
+                ref={titleRef}
+                data-autofocus
+                maxLength={200}
+                autoFocus
+                className={inputClass(Boolean(titleError ?? apiError?.fieldError('title')))}
+                value={values.title}
+                aria-invalid={Boolean(titleError ?? apiError?.fieldError('title'))}
+                onChange={(e) => {
+                  update('title', e.target.value);
+                  setTitleError(undefined);
+                }}
+              />
+            </Field>
+
+            <Field
+              id="issue-description"
+              label="Description"
+              error={apiError?.fieldError('description')}
+              hint={`${values.description.length}/5000 · Optional`}
+            >
+              <textarea
+                id="issue-description"
+                rows={7}
+                maxLength={5000}
+                className={`${controlClass()} min-h-40 resize-y py-2`}
+                value={values.description}
+                onChange={(e) => update('description', e.target.value)}
+              />
+            </Field>
+          </div>
+
+          <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Issue properties</h3>
+              <p className="pt-1 text-xs text-slate-500">Set the priority and ownership.</p>
+            </div>
+
+            <Field id="issue-priority" label="Priority">
+              <select
+                id="issue-priority"
+                className={`${controlClass()} h-9`}
+                value={values.priority}
+                onChange={(e) => update('priority', e.target.value as IssuePriority)}
+              >
+                {ISSUE_PRIORITIES.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {PRIORITY_META[priority].label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            {canAssign ? (
+              <Field id="issue-assignee" label="Assignee">
+                <select
+                  id="issue-assignee"
+                  className={`${controlClass()} h-9`}
+                  value={values.assigneeId}
+                  onChange={(e) => update('assigneeId', e.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {members.map((member) => (
+                    <option key={member.userId} value={member.userId}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            ) : (
+              <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
+                Maintainers assign issue owners after creation.
+              </p>
+            )}
+          </div>
+        </div>
 
         {formError && <Alert>{formError}</Alert>}
       </form>
