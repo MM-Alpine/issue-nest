@@ -9,34 +9,6 @@ The application is split into two independently runnable services:
 - **Backend:** Node.js 20, Express 5, TypeScript, Prisma, PostgreSQL, Zod, JWT, Vitest, Supertest
 - **Frontend:** React 19, Vite, TypeScript, React Router, TanStack Query, Tailwind CSS
 
-## Live Deployment
-
-| Service | URL |
-|---|---|
-| Web app | https://issuehub-web-production.up.railway.app |
-| API | https://issuehub-api-production.up.railway.app |
-| Health check | https://issuehub-api-production.up.railway.app/api/health |
-
-Sign in with any of the [demo accounts](#demo-accounts) below — the hosted database carries the same
-seed data. Deployment details are in [Deploying to Railway](#deploying-to-railway).
-
----
-
-## Features
-
-| Area | Capabilities |
-|---|---|
-| Authentication | Signup, login, logout, session restore, protected routes |
-| Projects | Create projects, list accessible projects, view project details |
-| Members | List project members, add members by email, assign per-project roles |
-| Issues | Create, view, update, delete, assign, prioritize, and change status |
-| Issue List | Search by title, filter by status/priority/assignee, sort, paginate |
-| Comments | Oldest-first comment threads with author and timestamp |
-| Permissions | Project-scoped `MEMBER` and `MAINTAINER` roles enforced server-side |
-| UI States | Loading, empty, error, validation, success, and responsive states |
-
----
-
 ## Quick Start
 
 ### Prerequisites
@@ -80,19 +52,6 @@ npm run dev
 ```
 
 Frontend URL: `http://localhost:5173`
-
-### Demo Accounts
-
-Created by `npm run db:seed`.
-
-| Email | Password | Access |
-|---|---|---|
-| `asha.kumar@fuser.dev` | `password123` | Maintainer on Fuser, Alpine Intellect, and Alpine-GTM |
-| `ravi.menon@fuser.dev` | `password123` | Maintainer on Fuser, member on Alpine-GTM |
-| `maya.iyer@alpineintellect.ai` | `password123` | Maintainer on Alpine Intellect, member on Fuser and Alpine-GTM |
-| `daniel.park@alpineintellect.ai` | `password123` | Maintainer on Alpine-GTM, member on Alpine Intellect |
-
----
 
 ## Scripts
 
@@ -215,32 +174,6 @@ frontend/src/
 
 The frontend stores the JWT in `localStorage`, restores the session through `/api/me`, and uses
 TanStack Query for request state and cache invalidation.
-
----
-
-## Authorization Model
-
-Roles are scoped per project.
-
-| Action | Non-member | Member | Reporter | Maintainer |
-|---|---:|---:|---:|---:|
-| View project, members, issues, comments | 404 | Yes | Yes | Yes |
-| Create issue | 404 | Yes | Yes | Yes |
-| Add comment | 404 | Yes | Yes | Yes |
-| Update title, description, priority | 404 | No | Yes | Yes |
-| Update status or assignee | 404 | No | No | Yes |
-| Delete issue | 404 | No | No | Yes |
-| Add project member | 404 | No | No | Yes |
-
-Important rules:
-
-- Non-members receive `404` to avoid exposing private project existence.
-- Authenticated members without enough permission receive `403`.
-- `assigneeId` must belong to the issue's project.
-- Password hashes are never returned by API responses.
-- UI permissions are usability only; the API re-checks every protected operation server-side.
-
----
 
 ## API Overview
 
