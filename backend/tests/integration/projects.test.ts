@@ -222,15 +222,13 @@ describe('GET /api/projects/:projectId/members', () => {
 });
 
 describe('GET /api/projects/:projectId/member-candidates', () => {
-  it('lists users from projects the caller maintains who are not already project members', async () => {
+  it('lists existing users who are not already project members', async () => {
     const owner = await createUser({ name: 'Asha Kumar' });
     const existing = await createUser({ name: 'Ravi Menon' });
     const candidate = await createUser({ name: 'Maya Iyer', email: 'maya@example.com' });
-    await createUser({ name: 'Unrelated User', email: 'unrelated@example.com' });
+    const unrelated = await createUser({ name: 'Unrelated User', email: 'unrelated@example.com' });
     const project = await createProjectWith(owner.id);
-    const managedProject = await createProjectWith(owner.id);
     await addMember(project.id, existing.id, Role.MEMBER);
-    await addMember(managedProject.id, candidate.id, Role.MEMBER);
 
     const res = await request(app)
       .get(`/api/projects/${project.id}/member-candidates`)
@@ -239,8 +237,30 @@ describe('GET /api/projects/:projectId/member-candidates', () => {
     expect(res.status).toBe(200);
     expect(res.body.users).toEqual([
       { id: candidate.id, name: 'Maya Iyer', email: 'maya@example.com' },
+      { id: unrelated.id, name: 'Unrelated User', email: 'unrelated@example.com' },
     ]);
     assertNoPasswordHash(res.body);
+  });
+
+  it('lists a removed member again so maintainers can re-add them', async () => {
+    const owner = await createUser({ name: 'Asha Kumar' });
+    const member = await createUser({ name: 'Ravi Menon', email: 'ravi@example.com' });
+    const project = await createProjectWith(owner.id);
+    await addMember(project.id, member.id, Role.MEMBER);
+    await prisma.projectMember.delete({
+      where: { projectId_userId: { projectId: project.id, userId: member.id } },
+    });
+
+    const res = await request(app)
+      .get(`/api/projects/${project.id}/member-candidates`)
+      .set('Authorization', bearer(owner.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.users).toContainEqual({
+      id: member.id,
+      name: 'Ravi Menon',
+      email: 'ravi@example.com',
+    });
   });
 
   it('rejects a MEMBER with 403', async () => {
