@@ -21,49 +21,32 @@ The application is split into two independently runnable services:
 
 ```bash
 cp .env.example .env
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
 ```
 
-Docker Compose automatically reads the root `.env` file for the local PostgreSQL container. The
-default values match `backend/.env.example`. If you change the local database user, password, name,
-or port, update `DATABASE_URL` and `TEST_DATABASE_URL` in `backend/.env` to match.
+The root `.env` file is the single source for local configuration. Docker Compose reads it when
+starting PostgreSQL, backend scripts read it before running Prisma, tests, or the API, and Vite reads
+it before starting the frontend.
 
-#### Docker Compose
-
-Copy `.env.example` to `.env` in the repository root before running Docker Compose.
+#### PostgreSQL
 
 | Variable | Description |
 |---|---|
+| `POSTGRES_HOST` | Host used by backend scripts to connect to PostgreSQL |
 | `POSTGRES_USER` | Local PostgreSQL user |
 | `POSTGRES_PASSWORD` | Local PostgreSQL password |
 | `POSTGRES_DB` | Local application database created by the Postgres container |
 | `POSTGRES_TEST_DB` | Local test database created by the init script on a fresh volume |
 | `POSTGRES_PORT` | Host port mapped to PostgreSQL port `5432` |
 
-#### Backend
-
-Copy `backend/.env.example` to `backend/.env`.
+#### Backend and Frontend
 
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | Local application database connection string |
-| `TEST_DATABASE_URL` | Local test database connection string |
 | `JWT_SECRET` | Local HS256 signing secret, minimum 32 characters |
 | `JWT_EXPIRES_IN` | JWT lifetime |
 | `PORT` | API port |
 | `CORS_ORIGIN` | Allowed frontend origin |
 | `NODE_ENV` | Runtime environment |
-
-The backend validates environment variables at startup with Zod and exits early on invalid
-configuration.
-
-#### Frontend
-
-Copy `frontend/.env.example` to `frontend/.env`.
-
-| Variable | Description |
-|---|---|
 | `VITE_API_URL` | Backend API base URL |
 
 ### 2. Start PostgreSQL

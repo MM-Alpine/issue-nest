@@ -20,16 +20,6 @@ if [ -f .env.example ] && [ ! -f .env ]; then
   echo "  copied .env.example → .env"
 fi
 
-if [ -f backend/.env.example ] && [ ! -f backend/.env ]; then
-  cp backend/.env.example backend/.env
-  echo "  copied backend/.env.example → backend/.env"
-fi
-
-if [ -f frontend/.env.example ] && [ ! -f frontend/.env ]; then
-  cp frontend/.env.example frontend/.env
-  echo "  copied frontend/.env.example → frontend/.env"
-fi
-
 if [ -f docker-compose.yml ]; then
   echo "── database: docker compose up -d ──"; docker compose up -d || echo "  ! could not start Docker Postgres"
 else

@@ -682,8 +682,6 @@ svg { display: block; }
   font-size: 13px;
 }
 .auth-switch button { padding: 0; border: 0; background: transparent; color: #0c66e4; cursor: pointer; font-weight: 650; }
-.demo-card { margin-top: 22px; padding: 11px 12px; border-radius: 10px; background: var(--blue-soft); color: #315a9b; font-size: 11px; }
-.demo-card strong { display: block; margin-bottom: 3px; color: #153b7e; }
 .auth-alert { margin-bottom: 14px; padding: 10px 11px; border-radius: 9px; background: var(--red-soft); color: #b91f38; font-size: 11px; }
 
 .mobile-backdrop { display: none; }

@@ -5,18 +5,18 @@
   "description": "IssueHub API — Express 5 + Prisma 6 + PostgreSQL 16",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "scripts/with-env.sh tsx watch src/server.ts",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/server.js",
+    "start": "scripts/with-env.sh node dist/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run",
-    "test:unit": "vitest run --config vitest.unit.config.ts",
-    "test:coverage": "vitest run --coverage",
-    "prisma:generate": "prisma generate",
-    "db:migrate:dev": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
-    "db:seed": "prisma db seed"
+    "test": "scripts/with-env.sh vitest run",
+    "test:unit": "scripts/with-env.sh vitest run --config vitest.unit.config.ts",
+    "test:coverage": "scripts/with-env.sh vitest run --coverage",
+    "prisma:generate": "scripts/with-env.sh prisma generate",
+    "db:migrate:dev": "scripts/with-env.sh prisma migrate dev",
+    "db:migrate:deploy": "scripts/with-env.sh prisma migrate deploy",
+    "db:seed": "scripts/with-env.sh prisma db seed"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

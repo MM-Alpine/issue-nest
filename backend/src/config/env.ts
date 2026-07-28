@@ -21,7 +21,11 @@ function loadEnv(): Env {
   const parsed = EnvSchema.safeParse(process.env);
   if (!parsed.success) {
     const lines = parsed.error.issues.map((i) => `  - ${i.path.join('.') || '(root)'}: ${i.message}`);
-    console.error(`Invalid environment configuration:\n${lines.join('\n')}\n\nCopy .env.example to .env and fill it in.`);
+    console.error(
+      `Invalid environment configuration:\n${lines.join(
+        '\n',
+      )}\n\nCopy the example env files from the README and fill them in.`,
+    );
     process.exit(1);
   }
   return parsed.data;

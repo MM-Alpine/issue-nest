@@ -11,7 +11,7 @@ export default function setup(): void {
   const url = process.env.TEST_DATABASE_URL;
 
   if (!url) {
-    throw new Error('TEST_DATABASE_URL is not set — copy backend/.env.example to backend/.env');
+    throw new Error('TEST_DATABASE_URL is not set — copy .env.example to .env and run tests through npm');
   }
   if (!url.includes('issuehub_test')) {
     throw new Error(

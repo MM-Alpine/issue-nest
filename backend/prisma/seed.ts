@@ -2,15 +2,12 @@ import { IssuePriority, IssueStatus, PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 /**
- * Demo data for reviewers (docs/05 §2.9). Idempotent: every write is an upsert keyed
- * on a unique column, so `npm run db:seed` can be re-run safely.
- *
- * These are fixtures, not secrets — the password is documented in the README.
+ * Local seed data. Idempotent: every write is an upsert keyed on a unique column,
+ * so `npm run db:seed` can be re-run safely.
  */
 const prisma = new PrismaClient();
 
-const DEMO_PASSWORD = 'password123';
-const DEMO_USER_KEY: UserKey = 'asha';
+const SEED_PASSWORD = 'password123';
 
 type UserKey = 'asha' | 'ravi' | 'maya' | 'daniel';
 type ProjectKey = 'FUS' | 'AINT' | 'CAM';
@@ -106,7 +103,7 @@ const ISSUE_SEEDS: Record<ProjectKey, IssueSeed[]> = {
 };
 
 async function main(): Promise<void> {
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
   const users: Record<UserKey, string> = {} as Record<UserKey, string>;
   for (const user of USERS) {
@@ -293,9 +290,6 @@ async function main(): Promise<void> {
   console.info(
     `Seeded ${userCount} users, ${projectCount} projects, ${issueCount} issues, ${commentCount} comments.`,
   );
-  const demoUser = USERS.find((user) => user.key === DEMO_USER_KEY);
-  if (!demoUser) throw new Error('Demo user is not configured');
-  console.info(`Demo login: ${demoUser.email} / ${DEMO_PASSWORD}`);
 }
 
 main()
