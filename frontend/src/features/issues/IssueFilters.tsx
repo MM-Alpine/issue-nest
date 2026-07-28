@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
-import { controlClass } from '../../components/control-styles';
 import { CloseIcon, SearchIcon } from '../../components/icons';
 import { Modal } from '../../components/Modal';
 import {
@@ -21,8 +20,6 @@ interface Props {
   onClear: () => void;
   hasActiveFilters: boolean;
 }
-
-const selectClass = `${controlClass()} h-9 pr-8 sm:w-[10.5rem]`;
 
 export function IssueFilters({ params, members, onChange, onClear, hasActiveFilters }: Props) {
   const [search, setSearch] = useState(params.q ?? '');
@@ -72,20 +69,21 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
       >
         Status
       </label>
-      <select
-        id={`${idPrefix}-status`}
-        className={selectClass}
-        data-autofocus={autoFocus || undefined}
-        value={params.status ?? ''}
-        onChange={(e) => onChange({ status: asOneOf(e.target.value, ISSUE_STATUSES) })}
-      >
-        <option value="">All statuses</option>
-        {ISSUE_STATUSES.map((status) => (
-          <option key={status} value={status}>
-            {STATUS_META[status].label}
-          </option>
-        ))}
-      </select>
+      <span className="filter-control">
+        <select
+          id={`${idPrefix}-status`}
+          data-autofocus={autoFocus || undefined}
+          value={params.status ?? ''}
+          onChange={(e) => onChange({ status: asOneOf(e.target.value, ISSUE_STATUSES) })}
+        >
+          <option value="">Status</option>
+          {ISSUE_STATUSES.map((status) => (
+            <option key={status} value={status}>
+              {STATUS_META[status].label}
+            </option>
+          ))}
+        </select>
+      </span>
 
       <label
         className={visibleLabels ? 'text-[13px] font-medium text-slate-700' : 'sr-only'}
@@ -93,19 +91,20 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
       >
         Priority
       </label>
-      <select
-        id={`${idPrefix}-priority`}
-        className={selectClass}
-        value={params.priority ?? ''}
-        onChange={(e) => onChange({ priority: asOneOf(e.target.value, ISSUE_PRIORITIES) })}
-      >
-        <option value="">All priorities</option>
-        {ISSUE_PRIORITIES.map((priority) => (
-          <option key={priority} value={priority}>
-            {PRIORITY_META[priority].label}
-          </option>
-        ))}
-      </select>
+      <span className="filter-control">
+        <select
+          id={`${idPrefix}-priority`}
+          value={params.priority ?? ''}
+          onChange={(e) => onChange({ priority: asOneOf(e.target.value, ISSUE_PRIORITIES) })}
+        >
+          <option value="">Priority</option>
+          {ISSUE_PRIORITIES.map((priority) => (
+            <option key={priority} value={priority}>
+              {PRIORITY_META[priority].label}
+            </option>
+          ))}
+        </select>
+      </span>
 
       <label
         className={visibleLabels ? 'text-[13px] font-medium text-slate-700' : 'sr-only'}
@@ -113,20 +112,21 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
       >
         Assignee
       </label>
-      <select
-        id={`${idPrefix}-assignee`}
-        className={selectClass}
-        value={params.assignee ?? ''}
-        onChange={(e) => onChange({ assignee: e.target.value || undefined })}
-      >
-        <option value="">All assignees</option>
-        <option value="unassigned">Unassigned</option>
-        {members.map((member) => (
-          <option key={member.userId} value={member.userId}>
-            {member.name}
-          </option>
-        ))}
-      </select>
+      <span className="filter-control">
+        <select
+          id={`${idPrefix}-assignee`}
+          value={params.assignee ?? ''}
+          onChange={(e) => onChange({ assignee: e.target.value || undefined })}
+        >
+          <option value="">Assignee</option>
+          <option value="unassigned">Unassigned</option>
+          {members.map((member) => (
+            <option key={member.userId} value={member.userId}>
+              {member.name}
+            </option>
+          ))}
+        </select>
+      </span>
 
       <label
         className={visibleLabels ? 'text-[13px] font-medium text-slate-700' : 'sr-only'}
@@ -134,77 +134,72 @@ export function IssueFilters({ params, members, onChange, onClear, hasActiveFilt
       >
         Sort
       </label>
-      <select
-        id={`${idPrefix}-sort`}
-        className={selectClass}
-        value={sortValue}
-        onChange={(e) => {
-          const [sort, order] = e.target.value.split(':');
-          onChange({
-            sort: asOneOf(sort, ISSUE_SORTS) ?? 'createdAt',
-            order: asOneOf(order, SORT_ORDERS) ?? 'desc',
-          });
-        }}
-      >
-        {SORT_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <span className="filter-control">
+        <select
+          id={`${idPrefix}-sort`}
+          value={sortValue}
+          onChange={(e) => {
+            const [sort, order] = e.target.value.split(':');
+            onChange({
+              sort: asOneOf(sort, ISSUE_SORTS) ?? 'createdAt',
+              order: asOneOf(order, SORT_ORDERS) ?? 'desc',
+            });
+          }}
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </span>
     </>
   );
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm md:sticky md:top-[4.5rem] md:z-20">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[12rem] flex-1 lg:max-w-sm">
-          <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400">
-            <SearchIcon />
-          </span>
-          <label className="sr-only" htmlFor="filter-search">
-            Search issue titles
-          </label>
+    <div>
+      <div className="issue-toolbar">
+        <label className="search-control" htmlFor="filter-search">
+          <SearchIcon />
           <input
             id="filter-search"
             type="search"
-            placeholder="Search title…"
-            className={`${controlClass()} h-9 pl-9`}
+            aria-label="Search issue titles"
+            placeholder="Search issues..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-        </div>
+        </label>
 
         {/* Inline from 640px; behind a sheet below it (docs/03 §8). */}
-        <div className="hidden flex-wrap items-center gap-2 sm:flex">
+        <div className="issuehub-desktop-filters">
           {renderControls('filter-inline')}
         </div>
 
-        <Button variant="secondary" className="sm:hidden" onClick={() => setSheetOpen(true)}>
+        <Button variant="secondary" className="issuehub-mobile-filter-button" onClick={() => setSheetOpen(true)}>
           Filters
         </Button>
 
         {hasActiveFilters && (
-          <Button variant="ghost" className="sm:ml-auto" onClick={onClear}>
+          <Button variant="ghost" onClick={onClear}>
             Clear filters
           </Button>
         )}
       </div>
 
       {activeFilters.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-          <span className="text-xs font-medium text-slate-500">Active</span>
+        <div className="active-filters">
           {activeFilters.map((filter) => (
-            <button
-              key={filter.label}
-              type="button"
-              onClick={() => onChange(filter.patch)}
-              className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 transition-colors hover:border-indigo-200 hover:bg-indigo-100"
-            >
+            <span key={filter.label} className="filter-chip">
               <span className="truncate">{filter.label}</span>
-              <CloseIcon className="h-3 w-3" />
-            </button>
+              <button type="button" onClick={() => onChange(filter.patch)} aria-label={`Remove ${filter.label}`}>
+                <CloseIcon className="h-3 w-3" />
+              </button>
+            </span>
           ))}
+          <button type="button" className="button ghost small" onClick={onClear}>
+            Clear all
+          </button>
         </div>
       )}
 

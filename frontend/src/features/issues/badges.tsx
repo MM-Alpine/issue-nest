@@ -41,7 +41,7 @@ export function RoleChip({ role }: { role: Role }) {
     <span
       className={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium ${
         role === 'MAINTAINER'
-          ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+          ? 'border-blue-200 bg-blue-50 text-blue-700'
           : 'border-slate-200 bg-slate-100 text-slate-600'
       }`}
     >
@@ -53,7 +53,7 @@ export function RoleChip({ role }: { role: Role }) {
 export function Avatar({ name }: { name: string }) {
   return (
     <span
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-semibold text-indigo-700 ring-1 ring-indigo-200"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-semibold text-blue-700 ring-1 ring-blue-200"
       aria-hidden="true"
     >
       {name}

@@ -1,93 +1,184 @@
 import { useNavigate } from 'react-router-dom';
-import type { IssueRow } from '../../types/api';
+import { useState } from 'react';
+import type { CSSProperties } from 'react';
+import { CommentIcon, MoreIcon, PaperclipIcon } from '../../components/icons';
+import { useToast } from '../../components/toast-context';
+import type { IssueRow, IssueStatus } from '../../types/api';
 import { formatAge, initials, shortId } from '../../utils/format';
-import { Avatar, PriorityBadge, StatusBadge } from './badges';
+import { PRIORITY_META, STATUS_META } from '../../utils/labels';
 
-/**
- * A real <table> for semantics (docs/03 §9). Below 768px the header hides and each row
- * lays out as a stacked card, which keeps one DOM structure instead of two components.
- */
-export function IssueTable({ issues }: { issues: IssueRow[] }) {
+interface Props {
+  issues: IssueRow[];
+  selectedIssueId?: string | null;
+  onIssueSelect?: (issue: IssueRow) => void;
+}
+
+const STATUS_GROUPS: Array<{
+  status: IssueStatus;
+  colour: string;
+  soft: string;
+}> = [
+  { status: 'OPEN', colour: '#e33048', soft: '#fff0f3' },
+  { status: 'IN_PROGRESS', colour: '#1769ff', soft: '#edf4ff' },
+  { status: 'RESOLVED', colour: '#12a66a', soft: '#e9f9f1' },
+  { status: 'CLOSED', colour: '#8a96ad', soft: '#f4f7fb' },
+];
+
+const priorityColour = {
+  LOW: '#8a96ad',
+  MEDIUM: '#f1a000',
+  HIGH: '#ff7617',
+  CRITICAL: '#e33048',
+};
+
+function AssigneeCell({ issue }: { issue: IssueRow }) {
+  if (!issue.assignee) return <span className="assignee-cell">Unassigned</span>;
+  return (
+    <span className="assignee-cell" title={issue.assignee.name}>
+      <span className="avatar sm">{initials(issue.assignee.name)}</span>
+    </span>
+  );
+}
+
+export function IssueTable({ issues, selectedIssueId, onIssueSelect }: Props) {
   const navigate = useNavigate();
+  const toast = useToast();
+  const [menuIssueId, setMenuIssueId] = useState<string | null>(null);
+  const grouped = STATUS_GROUPS.map((group) => ({
+    ...group,
+    issues: issues.filter((issue) => issue.status === group.status),
+  })).filter((group) => group.issues.length > 0);
 
   return (
-    <table className="w-full text-left">
-      <caption className="sr-only">Issues in this project</caption>
-      <thead className="hidden md:table-header-group">
-        <tr className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-          <th scope="col" className="px-5 py-3">
-            Issue
-          </th>
-          <th scope="col" className="px-4 py-3">
-            Status
-          </th>
-          <th scope="col" className="px-4 py-3">
-            Priority
-          </th>
-          <th scope="col" className="px-4 py-3">
-            Assignee
-          </th>
-          <th scope="col" className="px-5 py-3 text-right">
-            Updated
-          </th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-slate-200 md:divide-y">
-        {issues.map((issue) => (
-          <tr
-            key={issue.id}
-            onClick={() => navigate(`/issues/${issue.id}`)}
-            className="group block cursor-pointer transition-[background-color,box-shadow] hover:bg-slate-50 focus-within:bg-slate-50 md:table-row"
+    <div className="issue-groups">
+      {grouped.map((group) => (
+        <section key={group.status} className="issue-group" aria-labelledby={`issues-${group.status}`}>
+          <div
+            className="group-header"
+            style={
+              {
+                '--group': group.colour,
+                '--group-soft': group.soft,
+              } as CSSProperties
+            }
           >
-            <td className="block px-4 pt-4 pb-2 md:table-cell md:max-w-md md:px-5 md:py-4">
-              <div className="flex min-w-0 flex-col gap-1">
-                <span className="font-mono text-[11px] font-medium tracking-wide text-slate-400 uppercase">
-                  {shortId(issue.id)}
-                </span>
-              <a
-                href={`/issues/${issue.id}`}
-                title={issue.title}
-                onClick={(e) => {
-                  // The row already navigates; let modifier-clicks open a new tab.
-                  if (!e.metaKey && !e.ctrlKey) e.preventDefault();
+            <span className="group-title" id={`issues-${group.status}`}>
+              {group.status === 'OPEN' ? 'Needs attention' : STATUS_META[group.status].label}
+            </span>
+            <span className="group-count">{group.issues.length}</span>
+            <span className="group-spacer" />
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={`${STATUS_META[group.status].label} options`}
+              onClick={() => toast.success(`${group.issues.length} ${STATUS_META[group.status].label.toLowerCase()} issues in this section`)}
+            >
+              <MoreIcon />
+            </button>
+          </div>
+
+          <div className="table-header" role="row">
+            <span>Key</span>
+            <span>Title</span>
+            <span>Area</span>
+            <span>Assignee</span>
+            <span>Priority</span>
+            <span>Updated</span>
+            <span />
+            <span />
+            <span />
+          </div>
+
+          {group.issues.map((issue) => {
+            const selected = selectedIssueId === issue.id;
+            const selectIssue = () =>
+              onIssueSelect ? onIssueSelect(issue) : navigate(`/issues/${issue.id}`);
+
+            return (
+              <div
+                key={issue.id}
+                className={`issue-row ${selected ? 'selected' : ''}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${shortId(issue.id)} ${issue.title}`}
+                onClick={selectIssue}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    selectIssue();
+                  }
                 }}
-                  className="block rounded text-[15px] font-semibold text-slate-900 group-hover:text-indigo-700 md:truncate"
               >
-                {issue.title}
-              </a>
-                <span className="text-xs text-slate-500">
-                  {issue.commentCount > 0
-                    ? `${issue.commentCount} ${issue.commentCount === 1 ? 'comment' : 'comments'}`
-                    : 'No comments'}
+                <span className="issue-key">{shortId(issue.id).toUpperCase()}</span>
+                <span className="issue-title">{issue.title}</span>
+                <span className="area-cell">
+                  <span className="area-icon" style={{ '--area': '#1b76f0', '--area-soft': '#edf5ff' } as CSSProperties}>
+                    IH
+                  </span>
+                  <span>Issue</span>
+                </span>
+                <AssigneeCell issue={issue} />
+                <span className="priority-cell">
+                  <i className="priority-dot" style={{ '--priority': priorityColour[issue.priority] } as CSSProperties} />
+                  {PRIORITY_META[issue.priority].label}
+                </span>
+                <span className="updated-cell">{formatAge(issue.updatedAt)} ago</span>
+                <span className="meta-cell comments">
+                  <CommentIcon />
+                  {issue.commentCount}
+                </span>
+                <span className="meta-cell attachments">
+                  <PaperclipIcon />
+                  0
+                </span>
+                <span className="issuehub-row-actions">
+                  <button
+                    type="button"
+                    className="kebab"
+                    aria-label="Issue actions"
+                    aria-expanded={menuIssueId === issue.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setMenuIssueId((current) => (current === issue.id ? null : issue.id));
+                    }}
+                  >
+                    <MoreIcon />
+                  </button>
+                  {menuIssueId === issue.id && (
+                    <span className="popover issuehub-inline-menu" role="menu" aria-label="Issue actions">
+                      <button
+                        type="button"
+                        className="popover-item"
+                        role="menuitem"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setMenuIssueId(null);
+                          navigate(`/issues/${issue.id}`);
+                        }}
+                      >
+                        Open issue page
+                      </button>
+                      <button
+                        type="button"
+                        className="popover-item"
+                        role="menuitem"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setMenuIssueId(null);
+                          void navigator.clipboard?.writeText(`${window.location.origin}/issues/${issue.id}`);
+                          toast.success('Issue link copied');
+                        }}
+                      >
+                        Copy issue link
+                      </button>
+                    </span>
+                  )}
                 </span>
               </div>
-            </td>
-            <td className="inline-flex px-4 py-1 align-middle md:table-cell md:px-4 md:py-4">
-              <StatusBadge status={issue.status} />
-            </td>
-            <td className="inline-flex px-0 py-1 align-middle md:table-cell md:px-4 md:py-4">
-              <PriorityBadge priority={issue.priority} />
-            </td>
-            <td className="block px-4 pt-2 pb-1 md:table-cell md:px-4 md:py-4">
-              {issue.assignee ? (
-                <span className="flex items-center gap-2">
-                  <Avatar name={initials(issue.assignee.name)} />
-                  <span className="text-sm text-slate-700 md:hidden lg:inline">
-                    {issue.assignee.name}
-                  </span>
-                </span>
-              ) : (
-                <span className="text-sm text-slate-400">Unassigned</span>
-              )}
-            </td>
-            <td className="block px-4 pt-1 pb-4 text-xs text-slate-500 md:table-cell md:px-5 md:py-4 md:text-right">
-              <span className="md:hidden">Updated </span>
-              {formatAge(issue.updatedAt)}
-              <span className="md:hidden"> ago</span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+            );
+          })}
+        </section>
+      ))}
+    </div>
   );
 }

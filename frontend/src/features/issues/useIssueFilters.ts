@@ -38,10 +38,11 @@ export function useIssueFilters() {
 
   /** Any filter change resets to page 1; only an explicit `page` keeps its value. */
   const setFilters = useCallback(
-    (patch: Partial<IssueListParams>) => {
+    (patch: Partial<IssueListParams>, options: { preserveView?: boolean } = {}) => {
       setSearchParams(
         (current) => {
           const next = new URLSearchParams(current);
+          if (!options.preserveView) next.delete('view');
           for (const [key, value] of Object.entries(patch)) {
             if (value === undefined || value === '' || key === 'pageSize') next.delete(key);
             else next.set(key, String(value));

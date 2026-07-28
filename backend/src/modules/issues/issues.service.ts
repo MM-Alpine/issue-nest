@@ -35,7 +35,7 @@ async function assertAssigneeIsMember(projectId: string, assigneeId: string): Pr
 export async function listIssues(projectId: string, userId: string, query: IssueListQuery) {
   await requireMembership(projectId, userId);
 
-  const where = buildIssueWhere(projectId, query);
+  const where = buildIssueWhere(projectId, query, userId);
   const orderBy = buildIssueOrderBy(query.sort, query.order);
   const { skip, take } = toSkipTake(query.page, query.pageSize);
 

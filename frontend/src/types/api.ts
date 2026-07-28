@@ -59,6 +59,8 @@ export interface Member {
   createdAt: string;
 }
 
+export type MemberCandidate = PublicUser;
+
 export interface IssueRow {
   id: string;
   title: string;
@@ -116,6 +118,7 @@ export interface IssueListParams {
   status?: IssueStatus;
   priority?: IssuePriority;
   assignee?: string;
+  mine?: boolean;
   sort?: IssueSort;
   order?: SortOrder;
   page?: number;

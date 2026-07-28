@@ -6,10 +6,11 @@ export const commentKeys = {
   list: (issueId: string) => ['comments', issueId] as const,
 };
 
-export const useComments = (issueId: string) =>
+export const useComments = (issueId: string, enabled = true) =>
   useQuery({
     queryKey: commentKeys.list(issueId),
     queryFn: () => commentsApi.listComments(issueId),
+    enabled: enabled && Boolean(issueId),
   });
 
 export function useAddComment(issueId: string) {
@@ -19,6 +20,7 @@ export function useAddComment(issueId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: commentKeys.list(issueId) });
       void queryClient.invalidateQueries({ queryKey: issueKeys.detail(issueId) });
+      void queryClient.invalidateQueries({ queryKey: issueKeys.all });
     },
   });
 }

@@ -4,6 +4,7 @@ import type { IssueListParams } from '../../types/api';
 import { projectKeys } from '../projects/hooks';
 
 export const issueKeys = {
+  all: ['issues'] as const,
   list: (projectId: string, params: IssueListParams) => ['issues', projectId, params] as const,
   listRoot: (projectId: string) => ['issues', projectId] as const,
   detail: (issueId: string) => ['issue', issueId] as const,
@@ -17,8 +18,12 @@ export const useIssues = (projectId: string, params: IssueListParams) =>
     placeholderData: (previous) => previous,
   });
 
-export const useIssue = (issueId: string) =>
-  useQuery({ queryKey: issueKeys.detail(issueId), queryFn: () => issuesApi.getIssue(issueId) });
+export const useIssue = (issueId: string, enabled = true) =>
+  useQuery({
+    queryKey: issueKeys.detail(issueId),
+    queryFn: () => issuesApi.getIssue(issueId),
+    enabled,
+  });
 
 export function useCreateIssue(projectId: string) {
   const queryClient = useQueryClient();

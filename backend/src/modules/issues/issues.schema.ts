@@ -57,6 +57,12 @@ export const IssueListQuery = z.object({
   status: status.optional(),
   priority: priority.optional(),
   assignee: z.union([z.literal('unassigned'), cuidSchema]).optional(),
+  mine: z
+    .enum(['true', 'false'], {
+      errorMap: () => ({ message: 'Expected one of true, false' }),
+    })
+    .transform((value) => value === 'true')
+    .optional(),
   sort: z
     .enum(['createdAt', 'priority', 'status'], {
       errorMap: () => ({ message: 'Expected one of createdAt, priority, status' }),

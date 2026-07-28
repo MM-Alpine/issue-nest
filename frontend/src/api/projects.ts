@@ -1,4 +1,4 @@
-import type { Member, ProjectDetail, ProjectSummary, Role } from '../types/api';
+import type { Member, MemberCandidate, ProjectDetail, ProjectSummary, Role } from '../types/api';
 import { apiFetch } from './client';
 
 export const listProjects = () =>
@@ -15,8 +15,22 @@ export const createProject = (body: { name: string; key: string; description?: s
 export const listMembers = (projectId: string) =>
   apiFetch<{ members: Member[] }>(`/api/projects/${projectId}/members`).then((r) => r.members);
 
-export const addMember = (projectId: string, body: { email: string; role: Role }) =>
+export const listMemberCandidates = (projectId: string) =>
+  apiFetch<{ users: MemberCandidate[] }>(`/api/projects/${projectId}/member-candidates`).then(
+    (r) => r.users,
+  );
+
+export const addMember = (projectId: string, body: { email?: string; userId?: string; role: Role }) =>
   apiFetch<{ member: Member }>(`/api/projects/${projectId}/members`, {
     method: 'POST',
     body,
   }).then((r) => r.member);
+
+export const updateMemberRole = (projectId: string, userId: string, body: { role: Role }) =>
+  apiFetch<{ member: Member }>(`/api/projects/${projectId}/members/${userId}`, {
+    method: 'PATCH',
+    body,
+  }).then((r) => r.member);
+
+export const removeMember = (projectId: string, userId: string) =>
+  apiFetch<void>(`/api/projects/${projectId}/members/${userId}`, { method: 'DELETE' });

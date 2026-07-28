@@ -17,7 +17,7 @@ export function NotFoundPage() {
       </p>
       <Link
         to="/projects"
-        className="mt-2 inline-flex h-9 items-center rounded-md bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+        className="mt-2 inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700"
       >
         Back to projects
       </Link>

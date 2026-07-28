@@ -19,7 +19,7 @@ architecture, and cross-cutting technical decisions.
 | ORM | Prisma Client | 6.x |
 | Migrations | Prisma Migrate | 6.x |
 | Validation | Zod | 3.x |
-| Hashing | bcrypt | 5.x, cost 10 (4 under `NODE_ENV=test`) |
+| Hashing | bcrypt | 6.x, cost 10 (4 under `NODE_ENV=test`) |
 | Tokens | jsonwebtoken (HS256) | 9.x |
 | Tests | Vitest + Supertest | latest |
 | Coverage | `@vitest/coverage-v8` | latest |

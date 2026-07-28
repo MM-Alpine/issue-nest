@@ -173,6 +173,30 @@ describe('filters', () => {
     expect(res.body.issues.every((i: { assignee: null }) => i.assignee === null)).toBe(true);
   });
 
+  it('filters my work to issues assigned to or reported by the authenticated user', async () => {
+    const { member, project } = await dataset();
+
+    const res = await request(app)
+      .get(`/api/projects/${project.id}/issues`)
+      .query({ mine: 'true' })
+      .set('Authorization', bearer(member.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.meta.total).toBe(4);
+    expect(titles(res.body)).toEqual([
+      'Search returns duplicates',
+      'LOGIN form throws on submit',
+      'Footer links 404',
+      'Login button unresponsive',
+    ]);
+    expect(
+      res.body.issues.every(
+        (issue: { reporter: { id: string }; assignee: { id: string } | null }) =>
+          issue.reporter.id === member.id || issue.assignee?.id === member.id,
+      ),
+    ).toBe(true);
+  });
+
   it('combines two filters with AND', async () => {
     const { member, project } = await dataset();
 
@@ -346,6 +370,7 @@ describe('invalid query parameters are rejected, never clamped', () => {
     ['status=NOPE', { status: 'NOPE' }],
     ['priority=URGENT', { priority: 'URGENT' }],
     ['assignee=garbage', { assignee: 'garbage' }],
+    ['mine=maybe', { mine: 'maybe' }],
   ];
 
   for (const [label, query] of cases) {

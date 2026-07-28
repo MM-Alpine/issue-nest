@@ -83,7 +83,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 }
 
 /** Drops empty values so the URL only ever carries active filters. */
-export function toQueryString(params: Record<string, string | number | undefined>): string {
+export function toQueryString(params: Record<string, string | number | boolean | undefined>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === '') continue;

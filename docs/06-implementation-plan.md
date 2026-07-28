@@ -398,7 +398,7 @@ Traceability from the assignment text to where it is satisfied. **M** = mandated
 | `404` (not `403`) for non-members | A | A7 |
 | Unique, uppercase project key | A | A8 |
 | Added member must already have an account | A | A9 |
-| No member removal or role change | A | A10 |
+| Member removal and role change | A | A10 |
 | Logout is client-side; no token revocation | A | A11 |
 | JWT in `localStorage` | A | A12 |
 | `400` for validation; `422` only for a non-member assignee | A | A13 |
@@ -424,7 +424,7 @@ Traceability from the assignment text to where it is satisfied. **M** = mandated
 | 4 | `403` or `404` for non-members? | `404`, to avoid confirming that a private project exists (A7) |
 | 5 | Is the project `key` unique globally, per user, or not at all? | Globally unique, uppercase (A8) |
 | 6 | "Invite/add members by email (no email send required)" — what if no such account exists? | `404 USER_NOT_FOUND`; no invitation record (A9) |
-| 7 | Can memberships be removed or roles changed? | Not in the MVP (A10) |
+| 7 | Can memberships be removed or roles changed? | Yes, by maintainers only; removal clears project assignments and cannot remove the last maintainer (A10) |
 | 8 | What does logout mean for a stateless JWT? | Client-side disposal; no revocation, documented as a limitation (A11) |
 | 9 | "Bearer JWT **or** secure cookie" | Bearer + `localStorage`, with the XSS trade-off documented (A12) |
 | 10 | Pagination appears under frontend pages but not in the query-parameter list | Added `page`/`pageSize`/`order`; defaults and bounds documented (A14, doc 04 §10) |

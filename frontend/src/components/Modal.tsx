@@ -19,42 +19,35 @@ export function Modal({ open, onClose, title, children, footer, size = 'sm' }: M
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div
-        className="animate-fade-in absolute inset-0 bg-slate-900/45"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <div className="overlay">
+      <button type="button" className="issuehub-overlay-button" onClick={onClose} aria-label="Close dialog" />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`animate-panel-in motion-scale relative flex max-h-full w-full flex-col overflow-hidden bg-white shadow-lg sm:rounded-lg sm:border sm:border-slate-200 ${
-          size === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-lg'
-        }`}
+        className={`modal ${size === 'lg' ? '' : 'narrow'}`}
       >
-        <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-6">
-          <h2 id={titleId} className="text-base font-semibold text-slate-900">
-            {title}
-          </h2>
+        <header className="modal-header">
+          <div className="modal-header-copy">
+            <h2 id={titleId}>{title}</h2>
+            <p>Complete the form below.</p>
+          </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            className="icon-button"
           >
             <CloseIcon />
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">{children}</div>
+        <div className="modal-body">{children}</div>
 
         {footer && (
-          <footer className="flex flex-col-reverse gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:justify-end sm:px-6">
-            {footer}
-          </footer>
+          <footer className="modal-footer">{footer}</footer>
         )}
       </div>
     </div>

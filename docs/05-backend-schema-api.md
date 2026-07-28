@@ -167,8 +167,8 @@ one of `createdAt`, `status`, `priority`, `assigneeId` — so each compound inde
 
 `createdAt` is `@default(now())` (database-side). `updatedAt` is Prisma's `@updatedAt`, refreshed
 on every `update()`. All timestamps are `timestamp(3)` UTC and serialised as ISO-8601 with `Z`;
-the frontend formats to local time with `Intl.DateTimeFormat`. `ProjectMember` has no `updatedAt`
-because a membership is never edited (assumption A10).
+the frontend formats to local time with `Intl.DateTimeFormat`. `ProjectMember` has no `updatedAt`;
+role changes preserve the original join timestamp.
 
 ## 1.6 Delete behaviour
 
@@ -253,7 +253,10 @@ There are no soft deletes and no `deletedAt` columns — out of scope.
 | GET | `/api/projects` | ✓ | membership-scoped |
 | GET | `/api/projects/:projectId` | ✓ | member |
 | GET | `/api/projects/:projectId/members` | ✓ | member |
+| GET | `/api/projects/:projectId/member-candidates` | ✓ | maintainer |
 | POST | `/api/projects/:projectId/members` | ✓ | maintainer |
+| PATCH | `/api/projects/:projectId/members/:userId` | ✓ | maintainer |
+| DELETE | `/api/projects/:projectId/members/:userId` | ✓ | maintainer |
 | GET | `/api/projects/:projectId/issues` | ✓ | member |
 | POST | `/api/projects/:projectId/issues` | ✓ | member (maintainer to set assignee) |
 | GET | `/api/issues/:issueId` | ✓ | member |
@@ -381,11 +384,29 @@ Errors — `400` (malformed id) · `401` · `404 NOT_FOUND` (absent **or** not a
 
 Maintainers first, then name ascending. Errors — `401` · `404`.
 
+### `GET /api/projects/:projectId/member-candidates`
+
+`200`
+
+```json
+{ "users": [
+  { "id": "clz1d…", "name": "Ravi Menon", "email": "ravi@example.com" }
+] }
+```
+
+Returns users from projects the caller maintains who are not already project members. This supports
+the member picker UI without exposing unrelated registered accounts; add-by-email remains available
+for API compatibility.
+Errors — `401` · `403 FORBIDDEN` (caller is a MEMBER) · `404 NOT_FOUND` (project invisible).
+
 ### `POST /api/projects/:projectId/members`
 
 ```json
 { "email": "ravi@example.com", "role": "MEMBER" }
 ```
+
+The UI normally sends `{ "userId": "clz1d…", "role": "MEMBER" }`; `email` is still accepted for
+backward compatibility. Send exactly one of `userId` or `email`.
 
 `201`
 
@@ -394,11 +415,36 @@ Maintainers first, then name ascending. Errors — `401` · `404`.
               "role": "MEMBER", "createdAt": "2026-07-27T09:31:00.000Z" } }
 ```
 
-Validation — valid email · `role` ∈ `MEMBER | MAINTAINER` (defaults to `MEMBER` if omitted).
+Validation — valid `userId` or valid email · `role` ∈ `MEMBER | MAINTAINER` (defaults to `MEMBER`
+if omitted).
 Errors — `400` · `401` · `403 FORBIDDEN` (caller is a MEMBER) · `404 NOT_FOUND` (project invisible)
 · `404 USER_NOT_FOUND` (no account with that email) · `409 ALREADY_MEMBER`.
 
 Both `404`s are distinguished by `code`, so the UI can show the right message.
+
+### `PATCH /api/projects/:projectId/members/:userId`
+
+```json
+{ "role": "MAINTAINER" }
+```
+
+`200`
+
+```json
+{ "member": { "userId": "clz1d…", "name": "Ravi Menon", "email": "ravi@example.com",
+              "role": "MAINTAINER", "createdAt": "2026-07-27T09:31:00.000Z" } }
+```
+
+Validation — `role` ∈ `MEMBER | MAINTAINER`.
+Errors — `400` · `401` · `403 FORBIDDEN` · `403 LAST_MAINTAINER` · `404 NOT_FOUND`.
+
+### `DELETE /api/projects/:projectId/members/:userId`
+
+`204`
+
+Maintainer-only. Removing a member also clears their issue assignments in that project so issue
+assignees cannot reference users who no longer have project access.
+Errors — `400` · `401` · `403 FORBIDDEN` · `403 LAST_MAINTAINER` · `404 NOT_FOUND`.
 
 ## 2.4 Issues
 
@@ -409,8 +455,12 @@ Query parameters, defaults, and semantics are specified in
 
 ```
 GET /api/projects/clz2b…/issues?q=login&status=IN_PROGRESS&priority=HIGH
-      &assignee=clz1a…&sort=priority&order=desc&page=1&pageSize=20
+      &assignee=clz1a…&mine=true&sort=priority&order=desc&page=1&pageSize=20
 ```
+
+`mine=true` narrows the project issue list to issues assigned to or reported by the
+authenticated user. It is used by the My Work view and still combines with the normal
+search/status/priority/assignee filters.
 
 `200`
 
@@ -604,10 +654,10 @@ Idempotent (`upsert` by unique key), so it can be re-run safely.
 
 | Entity | Content |
 |--------|---------|
-| Users | `asha@example.com` (maintainer of both), `ravi@example.com`, `mei@example.com` — all with password `password123` |
-| Projects | `WEB` — Website Redesign · `API` — Public API |
-| Members | Asha MAINTAINER in both; Ravi MEMBER in WEB; Mei MEMBER in API |
-| Issues | 20 total (12 in WEB, 8 in API) spread across all four statuses and all four priorities, mixed reporters, some unassigned, staggered `createdAt` values so sorting and pagination are visibly meaningful |
-| Comments | 2–3 comments on four of the issues |
+| Users | `asha.kumar@fuser.dev`, `ravi.menon@fuser.dev`, `maya.iyer@alpineintellect.ai`, `daniel.park@alpineintellect.ai` — all with password `password123` |
+| Projects | `FUS` — Fuser · `AINT` — Alpine Intellect · `CAM` — Alpine-GTM |
+| Members | Mixed maintainer/member access across all three projects |
+| Issues | 24 total across realistic product workflows, all four statuses and priorities, mixed reporters, some unassigned, staggered `createdAt` values so sorting and pagination are visibly meaningful |
+| Comments | 2–3 comments on five of the issues |
 
 Demo credentials go in the README. These are seed fixtures, not secrets.
