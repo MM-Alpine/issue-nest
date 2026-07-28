@@ -122,20 +122,13 @@ export async function listMembers(projectId: string, userId: string) {
   return members.map(toMember);
 }
 
-/** Users from projects the caller maintains who are not already in this project. */
+/** Existing users who are not already in this project. */
 export async function listMemberCandidates(projectId: string, userId: string) {
   await requireMaintainer(projectId, userId, 'add members');
-
-  const maintainedMemberships = await prisma.projectMember.findMany({
-    where: { userId, role: Role.MAINTAINER },
-    select: { projectId: true },
-  });
-  const maintainedProjectIds = maintainedMemberships.map((m) => m.projectId);
 
   return prisma.user.findMany({
     where: {
       memberships: {
-        some: { projectId: { in: maintainedProjectIds } },
         none: { projectId },
       },
     },

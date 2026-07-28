@@ -228,7 +228,7 @@ export function MembersDrawer({ open, onClose, projectId, canAddMembers }: Props
           <div>
             <h3 className="text-sm font-semibold text-slate-900">Add a member</h3>
             <p className="pt-0.5 text-xs text-slate-500">
-              Select a user from workspaces you manage and choose their project role.
+              Select an existing user and choose their project role.
             </p>
           </div>
 
@@ -321,7 +321,7 @@ export function MembersDrawer({ open, onClose, projectId, canAddMembers }: Props
             </ul>
           ) : (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500">
-              No available users from workspaces you manage.
+              No available users to add.
             </div>
           )}
         </div>
