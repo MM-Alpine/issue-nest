@@ -4,17 +4,18 @@ services:
     container_name: issuehub-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: issuehub
-      POSTGRES_PASSWORD: issuehub
-      POSTGRES_DB: issuehub_dev
+      POSTGRES_USER: ${POSTGRES_USER:-issuehub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-issuehub}
+      POSTGRES_DB: ${POSTGRES_DB:-issuehub_dev}
+      POSTGRES_TEST_DB: ${POSTGRES_TEST_DB:-issuehub_test}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - issuehub_pgdata:/var/lib/postgresql/data
-      # Runs ONLY on an empty volume. If issuehub_test is missing, `docker compose down -v` first.
+      # Runs only on an empty volume. Recreate the volume if the configured test database is missing.
       - ./docker/init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U issuehub -d issuehub_dev"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-issuehub} -d ${POSTGRES_DB:-issuehub_dev}"]
       interval: 5s
       timeout: 5s
       retries: 10

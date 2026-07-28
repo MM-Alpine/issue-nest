@@ -17,23 +17,73 @@ The application is split into two independently runnable services:
 - npm
 - Docker
 
-### 1. Start PostgreSQL
+### 1. Configure Environment
+
+```bash
+cp .env.example .env
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
+
+Docker Compose automatically reads the root `.env` file for the local PostgreSQL container. The
+default values match `backend/.env.example`. If you change the local database user, password, name,
+or port, update `DATABASE_URL` and `TEST_DATABASE_URL` in `backend/.env` to match.
+
+#### Docker Compose
+
+Copy `.env.example` to `.env` in the repository root before running Docker Compose.
+
+| Variable | Description |
+|---|---|
+| `POSTGRES_USER` | Local PostgreSQL user |
+| `POSTGRES_PASSWORD` | Local PostgreSQL password |
+| `POSTGRES_DB` | Local application database created by the Postgres container |
+| `POSTGRES_TEST_DB` | Local test database created by the init script on a fresh volume |
+| `POSTGRES_PORT` | Host port mapped to PostgreSQL port `5432` |
+
+#### Backend
+
+Copy `backend/.env.example` to `backend/.env`.
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Local application database connection string |
+| `TEST_DATABASE_URL` | Local test database connection string |
+| `JWT_SECRET` | Local HS256 signing secret, minimum 32 characters |
+| `JWT_EXPIRES_IN` | JWT lifetime |
+| `PORT` | API port |
+| `CORS_ORIGIN` | Allowed frontend origin |
+| `NODE_ENV` | Runtime environment |
+
+The backend validates environment variables at startup with Zod and exits early on invalid
+configuration.
+
+#### Frontend
+
+Copy `frontend/.env.example` to `frontend/.env`.
+
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Backend API base URL |
+
+### 2. Start PostgreSQL
 
 ```bash
 docker compose up -d
 ```
 
-The compose setup creates both development and test databases:
+With the default environment values, Compose creates two local databases:
 
 - `issuehub_dev`
 - `issuehub_test`
 
-### 2. Start the Backend
+### 3. Start the Backend
+
+From the repository root:
 
 ```bash
 cd backend
 npm install
-cp .env.example .env
 npm run prisma:generate
 npm run db:migrate:deploy
 npm run db:seed
@@ -42,12 +92,13 @@ npm run dev
 
 Backend URL: `http://localhost:4000`
 
-### 3. Start the Frontend
+### 4. Start the Frontend
+
+Open a second terminal from the repository root:
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env
 npm run dev
 ```
 
@@ -59,7 +110,7 @@ Frontend URL: `http://localhost:5173`
 
 | Command | Description |
 |---|---|
-| `./scripts/setup.sh` | Start Docker, install dependencies, generate Prisma client, run migrations, seed data |
+| `./scripts/setup.sh` | Create local env files, start Docker, install dependencies, generate Prisma client, run migrations, seed data |
 | `./scripts/verify.sh` | Fast backend typecheck and unit-test pass |
 | `./scripts/check.sh` | Full quality gate for backend and frontend |
 | `./scripts/db-verify.sh` | Rebuilds the development database from committed migrations |
@@ -81,7 +132,7 @@ Run from `backend/`.
 | `npm run prisma:generate` | Generate Prisma Client |
 | `npm run db:migrate:dev` | Create and apply a development migration |
 | `npm run db:migrate:deploy` | Apply committed migrations |
-| `npm run db:seed` | Seed demo data |
+| `npm run db:seed` | Seed local data |
 
 ### Frontend
 
@@ -90,41 +141,13 @@ Run from `frontend/`.
 | Command | Description |
 |---|---|
 | `npm run dev` | Start Vite dev server |
-| `npm run build` | Type-check and build the production bundle |
-| `npm run preview` | Serve the production build locally |
+| `npm run build` | Type-check and build the optimized frontend bundle |
+| `npm run preview` | Serve the built frontend bundle locally |
 | `npm run typecheck` | Type-check frontend code |
 | `npm run lint` | Run ESLint |
 
 ---
 
-## Environment
-
-### Backend
-
-Copy `backend/.env.example` to `backend/.env`.
-
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string for development |
-| `TEST_DATABASE_URL` | PostgreSQL connection string for tests |
-| `JWT_SECRET` | HS256 signing secret, minimum 32 characters |
-| `JWT_EXPIRES_IN` | JWT lifetime |
-| `PORT` | API port |
-| `CORS_ORIGIN` | Allowed frontend origin |
-| `NODE_ENV` | Runtime environment |
-
-The backend validates environment variables at startup with Zod and exits early on invalid
-configuration.
-
-### Frontend
-
-Copy `frontend/.env.example` to `frontend/.env`.
-
-| Variable | Description |
-|---|---|
-| `VITE_API_URL` | Backend API base URL |
-
----
 
 ## Architecture
 
@@ -190,7 +213,10 @@ Base URL: `http://localhost:4000`
 | `POST` | `/api/projects` | Create project |
 | `GET` | `/api/projects/:projectId` | Project detail |
 | `GET` | `/api/projects/:projectId/members` | List members |
+| `GET` | `/api/projects/:projectId/member-candidates` | List users who can be added to a project |
 | `POST` | `/api/projects/:projectId/members` | Add member |
+| `PATCH` | `/api/projects/:projectId/members/:userId` | Update member role |
+| `DELETE` | `/api/projects/:projectId/members/:userId` | Remove member |
 | `GET` | `/api/projects/:projectId/issues` | List issues |
 | `POST` | `/api/projects/:projectId/issues` | Create issue |
 | `GET` | `/api/issues/:issueId` | Issue detail |
@@ -207,6 +233,7 @@ Issue list query parameters:
 | `status` | Filter by issue status |
 | `priority` | Filter by issue priority |
 | `assignee` | User id or `unassigned` |
+| `mine` | `true` or `false`; when true, returns issues assigned to or reported by the current user |
 | `sort` | `createdAt`, `priority`, or `status` |
 | `order` | `asc` or `desc` |
 | `page` | Page number, starting at 1 |
@@ -291,7 +318,7 @@ The backend test suite includes:
 
 ---
 
-## Production Build
+## Build
 
 Backend:
 
@@ -307,95 +334,6 @@ Frontend:
 cd frontend
 npm run build
 npm run preview
-```
-
-For production deployment, configure environment variables explicitly and run database migrations
-with `npm run db:migrate:deploy` before starting the API.
-
----
-
-## Deploying to Railway
-
-The hosted instance runs as three Railway services in one project, in the `production` environment.
-
-| Service | Source | Runtime |
-|---|---|---|
-| `Postgres` | Railway PostgreSQL 16 template | Reachable from the API over the private network as `postgres.railway.internal` |
-| `issuehub-api` | `backend/Dockerfile`, root directory `/backend` | Node 20 on debian-slim, production dependencies only, runs as the non-root `node` user |
-| `issuehub-web` | `frontend/Dockerfile`, root directory `/frontend` | Caddy serving the built Vite assets |
-
-Both app services deploy from `main` on push. `watchPatterns` scope each service to its own
-directory, so a backend-only commit does not rebuild the frontend.
-
-### Per-service configuration
-
-Build and deploy settings are committed as config-as-code in `backend/railway.json` and
-`frontend/railway.json` — builder, healthcheck path and timeout, and an `ON_FAILURE` restart policy.
-
-Three details are worth knowing before changing anything:
-
-- **Migrations run as a pre-deploy step**, not as part of the start command. A Railway start command
-  is argv-split rather than shell-interpreted, so a `migrate && start` chain degrades silently into
-  extra arguments passed to Prisma and the server never boots. `preDeployCommand` also runs the
-  migration once per deployment instead of once per replica restart.
-- **`PORT` is pinned to 4000** on the API service. Railway injects its own `PORT` (8080) at runtime,
-  which would leave the app listening on a port the service domain does not target. Pinning it keeps
-  the Dockerfile's `EXPOSE`, the domain target port, and local development in agreement.
-- **`VITE_API_URL` is baked in at build time**, because Vite inlines `import.meta.env`. Changing the
-  API URL requires a **rebuild** of the web service, not a restart. It is declared as a Docker `ARG`
-  and Railway supplies service variables to Docker builds as build args.
-
-### Environment variables
-
-Set on `issuehub-api`:
-
-| Variable | Value |
-|---|---|
-| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` — a Railway reference, so no credential is copied |
-| `JWT_SECRET` | Random 64-character hex value, set from stdin so it never appears in shell history |
-| `CORS_ORIGIN` | The web service URL — the API allows that origin only |
-| `PORT` | `4000` |
-| `NODE_ENV` | `production` |
-| `JWT_EXPIRES_IN` | `1d` |
-
-Set on `issuehub-web`:
-
-| Variable | Value |
-|---|---|
-| `VITE_API_URL` | The API service URL |
-
-### Seeding the hosted database
-
-Migrations apply automatically on every deploy. Demo data is a deliberate one-off, run from a
-workstation against the database's public proxy URL:
-
-```bash
-cd backend
-railway run --service Postgres sh -c 'DATABASE_URL="$DATABASE_PUBLIC_URL" npm run db:seed'
-```
-
-The seed is idempotent — every write is an upsert keyed on a unique column, and each project's
-issues are replaced wholesale inside one transaction, so re-running it never accumulates duplicates.
-
-### Recreating the deployment from scratch
-
-```bash
-railway login
-railway init --name issue-nest
-railway add --database postgres
-railway add --service issuehub-api
-railway add --service issuehub-web
-railway domain --service issuehub-api --port 4000
-railway domain --service issuehub-web --port 8080
-```
-
-Then set the variables above, set each service's root directory (`/backend`, `/frontend`) and
-config-as-code path (`/backend/railway.json`, `/frontend/railway.json`), and connect both services to
-the repository:
-
-```bash
-railway service source connect --repo <owner>/issue-nest --branch main --service issuehub-api
-railway service source connect --repo <owner>/issue-nest --branch main --service issuehub-web
 ```
 
 ---

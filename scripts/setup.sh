@@ -15,6 +15,21 @@ fi
 echo "  node $(node --version)"
 command -v docker >/dev/null && echo "  docker present" || echo "  ! docker not found (needed for Postgres + tests)"
 
+if [ -f .env.example ] && [ ! -f .env ]; then
+  cp .env.example .env
+  echo "  copied .env.example → .env"
+fi
+
+if [ -f backend/.env.example ] && [ ! -f backend/.env ]; then
+  cp backend/.env.example backend/.env
+  echo "  copied backend/.env.example → backend/.env"
+fi
+
+if [ -f frontend/.env.example ] && [ ! -f frontend/.env ]; then
+  cp frontend/.env.example frontend/.env
+  echo "  copied frontend/.env.example → frontend/.env"
+fi
+
 if [ -f docker-compose.yml ]; then
   echo "── database: docker compose up -d ──"; docker compose up -d || echo "  ! could not start Docker Postgres"
 else
@@ -24,7 +39,6 @@ fi
 if [ -f backend/package.json ]; then
   echo "── backend: install + prisma ──"
   ( cd backend && npm install \
-      && [ -f .env ] || { [ -f .env.example ] && cp .env.example .env && echo "  copied backend/.env.example → .env"; } \
       && npm run prisma:generate --if-present \
       && npm run db:migrate:dev --if-present \
       && npm run db:seed --if-present )
@@ -34,8 +48,7 @@ fi
 
 if [ -f frontend/package.json ]; then
   echo "── frontend: install ──"
-  ( cd frontend && npm install \
-      && { [ -f .env ] || { [ -f .env.example ] && cp .env.example .env && echo "  copied frontend/.env.example → .env"; }; } )
+  ( cd frontend && npm install )
 else
   echo "── frontend: not scaffolded yet (docs/06 Phase 2) — SKIPPED"
 fi
