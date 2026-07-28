@@ -221,6 +221,55 @@ describe('GET /api/projects/:projectId/members', () => {
   });
 });
 
+describe('GET /api/projects/:projectId/member-candidates', () => {
+  it('lists users from projects the caller maintains who are not already project members', async () => {
+    const owner = await createUser({ name: 'Asha Kumar' });
+    const existing = await createUser({ name: 'Ravi Menon' });
+    const candidate = await createUser({ name: 'Maya Iyer', email: 'maya@example.com' });
+    await createUser({ name: 'Unrelated User', email: 'unrelated@example.com' });
+    const project = await createProjectWith(owner.id);
+    const managedProject = await createProjectWith(owner.id);
+    await addMember(project.id, existing.id, Role.MEMBER);
+    await addMember(managedProject.id, candidate.id, Role.MEMBER);
+
+    const res = await request(app)
+      .get(`/api/projects/${project.id}/member-candidates`)
+      .set('Authorization', bearer(owner.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.users).toEqual([
+      { id: candidate.id, name: 'Maya Iyer', email: 'maya@example.com' },
+    ]);
+    assertNoPasswordHash(res.body);
+  });
+
+  it('rejects a MEMBER with 403', async () => {
+    const owner = await createUser();
+    const member = await createUser();
+    const project = await createProjectWith(owner.id);
+    await addMember(project.id, member.id, Role.MEMBER);
+
+    const res = await request(app)
+      .get(`/api/projects/${project.id}/member-candidates`)
+      .set('Authorization', bearer(member.id));
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+  });
+
+  it('returns 404 for a non-member', async () => {
+    const owner = await createUser();
+    const stranger = await createUser();
+    const project = await createProjectWith(owner.id);
+
+    const res = await request(app)
+      .get(`/api/projects/${project.id}/member-candidates`)
+      .set('Authorization', bearer(stranger.id));
+
+    expect(res.status).toBe(404);
+  });
+});
+
 describe('POST /api/projects/:projectId/members', () => {
   it('lets a maintainer add an existing user by email', async () => {
     const owner = await createUser();
@@ -237,6 +286,26 @@ describe('POST /api/projects/:projectId/members', () => {
       userId: invitee.id,
       name: 'Ravi Menon',
       email: 'ravi@example.com',
+      role: 'MEMBER',
+    });
+    assertNoPasswordHash(res.body);
+  });
+
+  it('lets a maintainer add an existing user by id', async () => {
+    const owner = await createUser();
+    const invitee = await createUser({ name: 'Maya Iyer', email: 'maya@example.com' });
+    const project = await createProjectWith(owner.id);
+
+    const res = await request(app)
+      .post(`/api/projects/${project.id}/members`)
+      .set('Authorization', bearer(owner.id))
+      .send({ userId: invitee.id, role: 'MEMBER' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.member).toMatchObject({
+      userId: invitee.id,
+      name: 'Maya Iyer',
+      email: 'maya@example.com',
       role: 'MEMBER',
     });
     assertNoPasswordHash(res.body);
@@ -341,5 +410,120 @@ describe('POST /api/projects/:projectId/members', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error.details.role).toBeDefined();
+  });
+
+  it('rejects a request without a selected user or email with 400', async () => {
+    const owner = await createUser();
+    const project = await createProjectWith(owner.id);
+
+    const res = await request(app)
+      .post(`/api/projects/${project.id}/members`)
+      .set('Authorization', bearer(owner.id))
+      .send({ role: 'MEMBER' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.userId).toBeDefined();
+  });
+});
+
+describe('PATCH /api/projects/:projectId/members/:userId', () => {
+  it('lets a maintainer change a member role', async () => {
+    const owner = await createUser();
+    const member = await createUser({ name: 'Ravi Menon' });
+    const project = await createProjectWith(owner.id);
+    await addMember(project.id, member.id, Role.MEMBER);
+
+    const res = await request(app)
+      .patch(`/api/projects/${project.id}/members/${member.id}`)
+      .set('Authorization', bearer(owner.id))
+      .send({ role: 'MAINTAINER' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.member).toMatchObject({
+      userId: member.id,
+      name: 'Ravi Menon',
+      role: 'MAINTAINER',
+    });
+    assertNoPasswordHash(res.body);
+  });
+
+  it('rejects a MEMBER changing roles with 403', async () => {
+    const owner = await createUser();
+    const member = await createUser();
+    const target = await createUser();
+    const project = await createProjectWith(owner.id);
+    await addMember(project.id, member.id, Role.MEMBER);
+    await addMember(project.id, target.id, Role.MEMBER);
+
+    const res = await request(app)
+      .patch(`/api/projects/${project.id}/members/${target.id}`)
+      .set('Authorization', bearer(member.id))
+      .send({ role: 'MAINTAINER' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+  });
+
+  it('does not allow demoting the last maintainer', async () => {
+    const owner = await createUser();
+    const project = await createProjectWith(owner.id);
+
+    const res = await request(app)
+      .patch(`/api/projects/${project.id}/members/${owner.id}`)
+      .set('Authorization', bearer(owner.id))
+      .send({ role: 'MEMBER' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('LAST_MAINTAINER');
+  });
+});
+
+describe('DELETE /api/projects/:projectId/members/:userId', () => {
+  it('lets a maintainer remove a project member', async () => {
+    const owner = await createUser();
+    const member = await createUser();
+    const project = await createProjectWith(owner.id);
+    await addMember(project.id, member.id, Role.MEMBER);
+    const issue = await createIssue(project.id, owner.id, { assigneeId: member.id });
+
+    const res = await request(app)
+      .delete(`/api/projects/${project.id}/members/${member.id}`)
+      .set('Authorization', bearer(owner.id));
+
+    expect(res.status).toBe(204);
+
+    const membership = await prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId: project.id, userId: member.id } },
+    });
+    expect(membership).toBeNull();
+
+    const updatedIssue = await prisma.issue.findUniqueOrThrow({ where: { id: issue.id } });
+    expect(updatedIssue.assigneeId).toBeNull();
+  });
+
+  it('does not allow removing the last maintainer', async () => {
+    const owner = await createUser();
+    const project = await createProjectWith(owner.id);
+
+    const res = await request(app)
+      .delete(`/api/projects/${project.id}/members/${owner.id}`)
+      .set('Authorization', bearer(owner.id));
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('LAST_MAINTAINER');
+  });
+
+  it('returns 404 for a non-member trying to remove a member', async () => {
+    const owner = await createUser();
+    const stranger = await createUser();
+    const member = await createUser();
+    const project = await createProjectWith(owner.id);
+    await addMember(project.id, member.id, Role.MEMBER);
+
+    const res = await request(app)
+      .delete(`/api/projects/${project.id}/members/${member.id}`)
+      .set('Authorization', bearer(stranger.id));
+
+    expect(res.status).toBe(404);
   });
 });

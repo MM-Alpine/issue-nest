@@ -1,10 +1,14 @@
 import type { Prisma } from '@prisma/client';
 import type { IssueListQuery } from './issues.schema';
 
-export type IssueFilters = Pick<IssueListQuery, 'q' | 'status' | 'priority' | 'assignee'>;
+export type IssueFilters = Pick<IssueListQuery, 'q' | 'status' | 'priority' | 'assignee' | 'mine'>;
 
 /** Filters AND-combine; `assignee=unassigned` means `assigneeId IS NULL` (docs/04 §10). */
-export function buildIssueWhere(projectId: string, filters: IssueFilters): Prisma.IssueWhereInput {
+export function buildIssueWhere(
+  projectId: string,
+  filters: IssueFilters,
+  currentUserId?: string,
+): Prisma.IssueWhereInput {
   const where: Prisma.IssueWhereInput = { projectId };
 
   if (filters.q) where.title = { contains: filters.q, mode: 'insensitive' };
@@ -12,6 +16,9 @@ export function buildIssueWhere(projectId: string, filters: IssueFilters): Prism
   if (filters.priority) where.priority = filters.priority;
   if (filters.assignee) {
     where.assigneeId = filters.assignee === 'unassigned' ? null : filters.assignee;
+  }
+  if (filters.mine && currentUserId) {
+    where.OR = [{ assigneeId: currentUserId }, { reporterId: currentUserId }];
   }
 
   return where;

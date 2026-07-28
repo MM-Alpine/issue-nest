@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div
-        className="pointer-events-none fixed top-4 right-4 left-4 z-[60] flex flex-col gap-2 sm:left-auto sm:w-[calc(100%-2rem)] sm:max-w-sm"
+        className="toast-region pointer-events-none"
         role="status"
         aria-live="polite"
       >
@@ -39,11 +39,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={toast.id}
             {...(toast.tone === 'error' ? { role: 'alert' } : {})}
-            className={`animate-toast-in motion-scale pointer-events-auto rounded-md px-4 py-3 text-sm font-medium text-white shadow-lg ${
-              toast.tone === 'success' ? 'bg-emerald-600' : 'bg-red-600'
-            }`}
+            className={`toast pointer-events-auto ${toast.tone === 'error' ? 'error' : ''}`}
           >
-            {toast.message}
+            <span className="toast-icon" aria-hidden="true">✓</span>
+            <span className="toast-copy">
+              <strong>{toast.tone === 'success' ? 'Done' : 'Issue'}</strong>
+              <span>{toast.message}</span>
+            </span>
           </div>
         ))}
       </div>

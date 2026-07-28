@@ -6,6 +6,7 @@ export const projectKeys = {
   all: ['projects'] as const,
   detail: (projectId: string) => ['project', projectId] as const,
   members: (projectId: string) => ['project', projectId, 'members'] as const,
+  memberCandidates: (projectId: string) => ['project', projectId, 'member-candidates'] as const,
 };
 
 export const useProjects = () =>
@@ -24,6 +25,13 @@ export const useMembers = (projectId: string, enabled = true) =>
     enabled,
   });
 
+export const useMemberCandidates = (projectId: string, enabled = true) =>
+  useQuery({
+    queryKey: projectKeys.memberCandidates(projectId),
+    queryFn: () => projectsApi.listMemberCandidates(projectId),
+    enabled,
+  });
+
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -35,9 +43,36 @@ export function useCreateProject() {
 export function useAddMember(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { email: string; role: Role }) => projectsApi.addMember(projectId, body),
+    mutationFn: (body: { email?: string; userId?: string; role: Role }) =>
+      projectsApi.addMember(projectId, body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: projectKeys.members(projectId) });
+      void queryClient.invalidateQueries({ queryKey: projectKeys.memberCandidates(projectId) });
+      void queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+    },
+  });
+}
+
+export function useUpdateMemberRole(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: Role }) =>
+      projectsApi.updateMemberRole(projectId, userId, { role }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: projectKeys.members(projectId) });
+      void queryClient.invalidateQueries({ queryKey: projectKeys.memberCandidates(projectId) });
+      void queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+    },
+  });
+}
+
+export function useRemoveMember(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => projectsApi.removeMember(projectId, userId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: projectKeys.members(projectId) });
+      void queryClient.invalidateQueries({ queryKey: projectKeys.memberCandidates(projectId) });
       void queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
     },
   });

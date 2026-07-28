@@ -85,7 +85,7 @@ Password reset · email sending or real invitations · server-side token revocat
 tokens / token blocklist · issue attachments · labels, tags, epics, sprints, boards · issue
 history/audit log · activity feed · notifications · @mentions · comment edit/delete · rich text
 or markdown rendering · full-text search engine · saved filters · bulk actions · project
-edit/delete · member removal or role change after add · user profile editing · avatars ·
+edit/delete · user profile editing · avatars ·
 admin/superuser role · organisations/teams above projects · dark mode · i18n · rate limiting ·
 Redis, queues, WebSockets, GraphQL, microservices, Kubernetes · AI features of any kind ·
 frontend unit/E2E test suite (backend tests are what the assignment asks for).
@@ -104,6 +104,7 @@ frontend unit/E2E test suite (backend tests are what the assignment asks for).
 | FR-8 | Project `key` is globally unique; collision → `409` | Must |
 | FR-9 | Maintainer adds a member by email + role; unknown email → `404`; duplicate → `409` | Must |
 | FR-10 | Members cannot add members → `403` | Must |
+| FR-10a | Maintainers can change member roles and remove members without leaving a project with zero maintainers | Must |
 | FR-11 | Any project member can create an issue (defaults `OPEN`) | Must |
 | FR-12 | Non-members get `404` for a project's issues (existence not revealed) | Must |
 | FR-13 | Reporter may update own issue's title/description/priority | Must |
@@ -181,7 +182,7 @@ These fill gaps the assignment leaves open. Each is repeated in the README.
 | A7 | Non-members receive `404`, not `403`, for project/issue/comment resources | Avoids leaking the existence of private projects. Membership-checked-but-insufficient-role returns `403` |
 | A8 | Project `key` is globally unique, uppercase, `^[A-Z][A-Z0-9]{1,9}$` | Keys are display identifiers (`WEB-1`); global uniqueness is simplest and matches trackers reviewers know |
 | A9 | Adding a member requires the user to already have an account | Assignment says "no email send required — just a form", so there is no invitation record to create |
-| A10 | Members cannot be removed and roles cannot be changed after add | Not in the required feature list; add-only keeps membership minimal |
+| A10 | Removing a member clears their assignments in that project | Assignees must remain project members; removal cannot leave stale assigned users behind |
 | A11 | Logout is client-side token disposal; `POST /api/auth/logout` returns `204` | Bearer JWTs are stateless; server-side revocation is explicitly out of MVP scope and documented as a limitation |
 | A12 | JWT is stored in `localStorage` | Simplest with a bearer-header API. XSS exposure is documented as a known limitation; httpOnly cookies + CSRF is the production answer |
 | A13 | Validation failures return `400`, never `422`; `422` is reserved for one case only — semantically invalid references (assignee not in project) | The assignment allows either; a single consistent rule is easier to test and document |

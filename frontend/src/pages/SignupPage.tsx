@@ -91,10 +91,9 @@ export function SignupPage() {
   const clear = (key: keyof FieldState) => setErrors((s) => ({ ...s, [key]: undefined }));
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Create your account</h1>
-        <p className="pt-1 text-sm text-slate-500">Start with your name, email, and password.</p>
+    <form className="auth-form" onSubmit={onSubmit} noValidate>
+      <div className="auth-form-header">
+        <h2>Create an account</h2>
       </div>
 
       <Field id="name" label="Name" error={errors.name}>
@@ -107,6 +106,7 @@ export function SignupPage() {
           ref={nameRef}
           className={inputClass(Boolean(errors.name))}
           value={name}
+          placeholder="Enter your name"
           aria-invalid={Boolean(errors.name)}
           onChange={(e) => {
             setName(e.target.value);
@@ -123,6 +123,7 @@ export function SignupPage() {
           ref={emailRef}
           className={inputClass(Boolean(errors.email))}
           value={email}
+          placeholder="Enter your email"
           aria-invalid={Boolean(errors.email)}
           onChange={(e) => {
             setEmail(e.target.value);
@@ -131,12 +132,7 @@ export function SignupPage() {
         />
       </Field>
 
-      <Field
-        id="password"
-        label="Password"
-        error={errors.password}
-        hint="At least 8 characters"
-      >
+      <Field id="password" label="Password" error={errors.password}>
         <input
           id="password"
           type="password"
@@ -144,6 +140,7 @@ export function SignupPage() {
           ref={passwordRef}
           className={inputClass(Boolean(errors.password))}
           value={password}
+          placeholder="Create a password"
           aria-invalid={Boolean(errors.password)}
           onChange={(e) => {
             setPassword(e.target.value);
@@ -154,13 +151,13 @@ export function SignupPage() {
 
       {formError && <Alert>{formError}</Alert>}
 
-      <Button type="submit" pending={mutation.isPending} className="w-full">
-        Sign up
+      <Button type="submit" pending={mutation.isPending} className="auth-submit">
+        Continue
       </Button>
 
-      <p className="text-center text-sm text-slate-500">
+      <p className="auth-switch">
         Already have an account?{' '}
-        <Link to="/login" className="rounded font-medium text-indigo-600 hover:text-indigo-700">
+        <Link to="/login">
           Log in
         </Link>
       </p>

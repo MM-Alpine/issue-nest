@@ -17,7 +17,7 @@ body {
 
 /* Every interactive element keeps a visible focus ring (docs/03 §9). */
 :focus-visible {
-  @apply outline-none ring-2 ring-indigo-500 ring-offset-1;
+  @apply outline-none ring-2 ring-blue-500 ring-offset-1;
 }
 
 /* Honour the OS preference: transforms off, opacity kept (docs/03 §10). */

@@ -87,9 +87,10 @@ Created by `npm run db:seed`.
 
 | Email | Password | Access |
 |---|---|---|
-| `asha@example.com` | `password123` | Maintainer on seeded projects |
-| `ravi@example.com` | `password123` | Member on `WEB` |
-| `mei@example.com` | `password123` | Member on `API` |
+| `asha.kumar@fuser.dev` | `password123` | Maintainer on Fuser, Alpine Intellect, and Alpine-GTM |
+| `ravi.menon@fuser.dev` | `password123` | Maintainer on Fuser, member on Alpine-GTM |
+| `maya.iyer@alpineintellect.ai` | `password123` | Maintainer on Alpine Intellect, member on Fuser and Alpine-GTM |
+| `daniel.park@alpineintellect.ai` | `password123` | Maintainer on Alpine-GTM, member on Alpine Intellect |
 
 ---
 

@@ -1,5 +1,12 @@
 import { Role } from '@prisma/client';
 import { z } from 'zod';
+import { cuidSchema } from '../../shared/schemas';
+
+export const ProjectMemberParams = z.object({
+  projectId: cuidSchema,
+  userId: cuidSchema,
+});
+export type ProjectMemberParams = z.infer<typeof ProjectMemberParams>;
 
 export const CreateProjectBody = z
   .object({
@@ -20,10 +27,36 @@ export type CreateProjectBody = z.infer<typeof CreateProjectBody>;
 
 export const AddMemberBody = z
   .object({
-    email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+    email: z.string().trim().toLowerCase().email('Enter a valid email address').optional(),
+    userId: cuidSchema.optional(),
     role: z
       .nativeEnum(Role, { errorMap: () => ({ message: 'Expected one of MAINTAINER, MEMBER' }) })
       .default(Role.MEMBER),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!value.email && !value.userId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['userId'],
+        message: 'Choose a user to add',
+      });
+    }
+    if (value.email && value.userId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['userId'],
+        message: 'Send either userId or email, not both',
+      });
+    }
+  });
 export type AddMemberBody = z.infer<typeof AddMemberBody>;
+
+export const UpdateMemberRoleBody = z
+  .object({
+    role: z.nativeEnum(Role, {
+      errorMap: () => ({ message: 'Expected one of MAINTAINER, MEMBER' }),
+    }),
+  })
+  .strict();
+export type UpdateMemberRoleBody = z.infer<typeof UpdateMemberRoleBody>;

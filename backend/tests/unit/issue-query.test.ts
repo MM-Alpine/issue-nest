@@ -54,6 +54,21 @@ describe('buildIssueWhere', () => {
     });
   });
 
+  it('maps mine=true to issues assigned to or reported by the current user', () => {
+    expect(buildIssueWhere(PROJECT, { mine: true }, USER)).toEqual({
+      projectId: PROJECT,
+      OR: [{ assigneeId: USER }, { reporterId: USER }],
+    });
+  });
+
+  it('AND-combines mine=true with regular filters', () => {
+    expect(buildIssueWhere(PROJECT, { status: IssueStatus.OPEN, mine: true }, USER)).toEqual({
+      projectId: PROJECT,
+      status: 'OPEN',
+      OR: [{ assigneeId: USER }, { reporterId: USER }],
+    });
+  });
+
   it('ignores an empty search string', () => {
     expect(buildIssueWhere(PROJECT, { q: '' })).toEqual({ projectId: PROJECT });
   });

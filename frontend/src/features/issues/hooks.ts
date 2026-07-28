@@ -4,6 +4,7 @@ import type { IssueListParams } from '../../types/api';
 import { projectKeys } from '../projects/hooks';
 
 export const issueKeys = {
+  all: ['issues'] as const,
   list: (projectId: string, params: IssueListParams) => ['issues', projectId, params] as const,
   listRoot: (projectId: string) => ['issues', projectId] as const,
   detail: (issueId: string) => ['issue', issueId] as const,

@@ -79,10 +79,9 @@ export function LoginPage() {
   };
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Log in</h1>
-        <p className="pt-1 text-sm text-slate-500">Continue to your projects and issue queues.</p>
+    <form className="auth-form" onSubmit={onSubmit} noValidate>
+      <div className="auth-form-header">
+        <h2>Log in to continue</h2>
       </div>
 
       <Field id="email" label="Email" error={errors.email}>
@@ -96,6 +95,7 @@ export function LoginPage() {
           ref={emailRef}
           className={inputClass(Boolean(errors.email))}
           value={email}
+          placeholder="Enter your email"
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? 'email-error' : undefined}
           onChange={(e) => {
@@ -119,6 +119,7 @@ export function LoginPage() {
           ref={passwordRef}
           className={inputClass(Boolean(errors.password))}
           value={password}
+          placeholder="Enter your password"
           aria-invalid={Boolean(errors.password)}
           aria-describedby={errors.password ? 'password-error' : undefined}
           onChange={(e) => {
@@ -130,13 +131,13 @@ export function LoginPage() {
 
       {formError && <Alert>{formError}</Alert>}
 
-      <Button type="submit" pending={mutation.isPending} className="w-full">
-        Log in
+      <Button type="submit" pending={mutation.isPending} className="auth-submit">
+        Continue
       </Button>
 
-      <p className="text-center text-sm text-slate-500">
+      <p className="auth-switch">
         No account?{' '}
-        <Link to="/signup" className="rounded font-medium text-indigo-600 hover:text-indigo-700">
+        <Link to="/signup">
           Sign up
         </Link>
       </p>

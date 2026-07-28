@@ -1,5 +1,5 @@
 import { Prisma, Role } from '@prisma/client';
-import { conflict, notFound } from '../../lib/errors';
+import { conflict, forbidden, notFound } from '../../lib/errors';
 import { prisma } from '../../lib/prisma';
 import { requireMaintainer, requireMembership } from '../../shared/permissions';
 import { publicUserSelect } from '../../shared/selectors';
@@ -13,6 +13,22 @@ export interface ProjectSummary {
   role: Role;
   issueCount: number;
   createdAt: Date;
+}
+
+type MemberRecord = {
+  role: Role;
+  createdAt: Date;
+  user: { id: string; name: string; email: string };
+};
+
+function toMember(member: MemberRecord) {
+  return {
+    userId: member.user.id,
+    name: member.user.name,
+    email: member.user.email,
+    role: member.role,
+    createdAt: member.createdAt,
+  };
 }
 
 /**
@@ -103,41 +119,116 @@ export async function listMembers(projectId: string, userId: string) {
     orderBy: [{ role: 'asc' }, { user: { name: 'asc' } }],
   });
 
-  return members.map((m) => ({
-    userId: m.user.id,
-    name: m.user.name,
-    email: m.user.email,
-    role: m.role,
-    createdAt: m.createdAt,
-  }));
+  return members.map(toMember);
+}
+
+/** Users from projects the caller maintains who are not already in this project. */
+export async function listMemberCandidates(projectId: string, userId: string) {
+  await requireMaintainer(projectId, userId, 'add members');
+
+  const maintainedMemberships = await prisma.projectMember.findMany({
+    where: { userId, role: Role.MAINTAINER },
+    select: { projectId: true },
+  });
+  const maintainedProjectIds = maintainedMemberships.map((m) => m.projectId);
+
+  return prisma.user.findMany({
+    where: {
+      memberships: {
+        some: { projectId: { in: maintainedProjectIds } },
+        none: { projectId },
+      },
+    },
+    select: publicUserSelect,
+    orderBy: [{ name: 'asc' }, { email: 'asc' }],
+  });
 }
 
 export async function addMember(projectId: string, callerId: string, input: AddMemberBody) {
   await requireMaintainer(projectId, callerId, 'add members');
 
-  const user = await prisma.user.findUnique({
-    where: { email: input.email },
-    select: publicUserSelect,
-  });
+  const user = input.userId
+    ? await prisma.user.findUnique({
+        where: { id: input.userId },
+        select: publicUserSelect,
+      })
+    : await prisma.user.findUnique({
+        where: { email: input.email },
+        select: publicUserSelect,
+      });
   if (!user) {
-    throw notFound('No account exists with that email address', 'USER_NOT_FOUND');
+    throw notFound('No account exists for that user', 'USER_NOT_FOUND');
   }
 
   try {
     const membership = await prisma.projectMember.create({
       data: { projectId, userId: user.id, role: input.role },
     });
-    return {
-      userId: user.id,
-      name: user.name,
-      email: user.email,
-      role: membership.role,
-      createdAt: membership.createdAt,
-    };
+    return toMember({ role: membership.role, createdAt: membership.createdAt, user });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       throw conflict('That user is already a member of this project', 'ALREADY_MEMBER');
     }
     throw error;
   }
+}
+
+async function getProjectMember(projectId: string, userId: string) {
+  const member = await prisma.projectMember.findUnique({
+    where: { projectId_userId: { projectId, userId } },
+    include: { user: { select: publicUserSelect } },
+  });
+  if (!member) throw notFound('Member not found');
+  return member;
+}
+
+async function assertCanLoseMaintainer(projectId: string, member: { role: Role }) {
+  if (member.role !== Role.MAINTAINER) return;
+
+  const maintainerCount = await prisma.projectMember.count({
+    where: { projectId, role: Role.MAINTAINER },
+  });
+  if (maintainerCount <= 1) {
+    throw forbidden('A project must have at least one maintainer', 'LAST_MAINTAINER');
+  }
+}
+
+export async function updateMemberRole(
+  projectId: string,
+  callerId: string,
+  targetUserId: string,
+  role: Role,
+) {
+  await requireMaintainer(projectId, callerId, 'manage members');
+
+  const existing = await getProjectMember(projectId, targetUserId);
+  if (existing.role === role) return toMember(existing);
+
+  if (role !== Role.MAINTAINER) {
+    await assertCanLoseMaintainer(projectId, existing);
+  }
+
+  const updated = await prisma.projectMember.update({
+    where: { projectId_userId: { projectId, userId: targetUserId } },
+    data: { role },
+    include: { user: { select: publicUserSelect } },
+  });
+  return toMember(updated);
+}
+
+export async function removeMember(projectId: string, callerId: string, targetUserId: string) {
+  await requireMaintainer(projectId, callerId, 'manage members');
+
+  const existing = await getProjectMember(projectId, targetUserId);
+  await assertCanLoseMaintainer(projectId, existing);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.issue.updateMany({
+      where: { projectId, assigneeId: targetUserId },
+      data: { assigneeId: null },
+    });
+    await tx.projectMember.delete({
+      where: { projectId_userId: { projectId, userId: targetUserId } },
+    });
+  });
 }

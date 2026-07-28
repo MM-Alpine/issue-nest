@@ -10,17 +10,48 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 const DEMO_PASSWORD = 'password123';
+const DEMO_USER_KEY: UserKey = 'asha';
 
-const USERS = [
-  { name: 'Asha Kumar', email: 'asha@example.com' },
-  { name: 'Ravi Menon', email: 'ravi@example.com' },
-  { name: 'Mei Chen', email: 'mei@example.com' },
-] as const;
+type UserKey = 'asha' | 'ravi' | 'maya' | 'daniel';
+type ProjectKey = 'FUS' | 'AINT' | 'CAM';
 
-const PROJECTS = [
-  { key: 'WEB', name: 'Website Redesign', description: 'Marketing site rebuild for Q3.' },
-  { key: 'API', name: 'Public API', description: 'v2 rollout and developer docs.' },
-] as const;
+const USERS: Array<{
+  key: UserKey;
+  name: string;
+  email: string;
+  legacyEmails: string[];
+}> = [
+  { key: 'asha', name: 'Asha Kumar', email: 'asha.kumar@fuser.dev', legacyEmails: ['asha@example.com'] },
+  { key: 'ravi', name: 'Ravi Menon', email: 'ravi.menon@fuser.dev', legacyEmails: ['ravi@example.com'] },
+  { key: 'maya', name: 'Maya Iyer', email: 'maya.iyer@alpineintellect.ai', legacyEmails: ['mei@example.com'] },
+  { key: 'daniel', name: 'Daniel Park', email: 'daniel.park@alpineintellect.ai', legacyEmails: [] },
+];
+
+const PROJECTS: Array<{
+  key: ProjectKey;
+  legacyKeys: string[];
+  name: string;
+  description: string;
+}> = [
+  {
+    key: 'FUS',
+    legacyKeys: ['WEB'],
+    name: 'Fuser',
+    description: 'Customer engagement workflows, workspace access, and account operations.',
+  },
+  {
+    key: 'AINT',
+    legacyKeys: ['API'],
+    name: 'Alpine Intellect',
+    description: 'AI research workspace for knowledge sync, citations, and usage insights.',
+  },
+  {
+    key: 'CAM',
+    legacyKeys: ['CAMPAIGN'],
+    name: 'Alpine-GTM',
+    description: 'Campaign planning, launch approvals, audience sync, and reporting.',
+  },
+];
 
 /** Staggered days-ago values so sorting and pagination are visibly meaningful. */
 const daysAgo = (days: number): Date => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -30,67 +61,113 @@ type IssueSeed = {
   description: string | null;
   status: IssueStatus;
   priority: IssuePriority;
-  reporter: 'asha' | 'ravi' | 'mei';
-  assignee: 'asha' | 'ravi' | 'mei' | null;
+  reporter: UserKey;
+  assignee: UserKey | null;
   age: number;
 };
 
-const WEB_ISSUES: IssueSeed[] = [
-  { title: 'Login button unresponsive on iOS', description: 'Tapping Log in on iOS Safari does nothing. Console shows a swallowed promise rejection.', status: IssueStatus.IN_PROGRESS, priority: IssuePriority.HIGH, reporter: 'ravi', assignee: 'asha', age: 2 },
-  { title: 'Footer links return 404', description: 'All footer links point at the old CMS paths.', status: IssueStatus.OPEN, priority: IssuePriority.LOW, reporter: 'ravi', assignee: null, age: 5 },
-  { title: 'Hero image is not responsive below 360px', description: 'The hero overflows horizontally on small phones.', status: IssueStatus.OPEN, priority: IssuePriority.MEDIUM, reporter: 'asha', assignee: 'ravi', age: 7 },
-  { title: 'Contact form silently drops submissions', description: 'No error surfaces when the mail provider rejects the request.', status: IssueStatus.OPEN, priority: IssuePriority.CRITICAL, reporter: 'ravi', assignee: 'asha', age: 1 },
-  { title: 'Cookie banner reappears after acceptance', description: null, status: IssueStatus.RESOLVED, priority: IssuePriority.MEDIUM, reporter: 'asha', assignee: 'asha', age: 12 },
-  { title: 'Search returns duplicate results', description: 'Pagination repeats rows when two items share a timestamp.', status: IssueStatus.IN_PROGRESS, priority: IssuePriority.HIGH, reporter: 'asha', assignee: 'ravi', age: 3 },
-  { title: 'Blog index sorts oldest first', description: null, status: IssueStatus.CLOSED, priority: IssuePriority.LOW, reporter: 'ravi', assignee: null, age: 20 },
-  { title: 'Broken favicon on Safari', description: null, status: IssueStatus.OPEN, priority: IssuePriority.LOW, reporter: 'asha', assignee: null, age: 9 },
-  { title: 'Newsletter signup accepts invalid emails', description: 'Client-side validation is missing entirely.', status: IssueStatus.OPEN, priority: IssuePriority.MEDIUM, reporter: 'ravi', assignee: 'ravi', age: 4 },
-  { title: 'Pricing table misaligned on tablet', description: null, status: IssueStatus.RESOLVED, priority: IssuePriority.MEDIUM, reporter: 'asha', assignee: 'asha', age: 15 },
-  { title: 'Lighthouse accessibility score dropped to 78', description: 'Contrast failures on the secondary button.', status: IssueStatus.OPEN, priority: IssuePriority.HIGH, reporter: 'asha', assignee: null, age: 6 },
-  { title: 'Stale cache serves last week’s homepage', description: 'CDN TTL is set to seven days.', status: IssueStatus.CLOSED, priority: IssuePriority.CRITICAL, reporter: 'ravi', assignee: 'asha', age: 25 },
+const FUSER_ISSUES: IssueSeed[] = [
+  { title: 'SSO login issue', description: 'Okta users complete MFA but land back on the sign-in screen.', status: IssueStatus.OPEN, priority: IssuePriority.HIGH, reporter: 'asha', assignee: 'ravi', age: 1 },
+  { title: 'Workspace invite email not delivered', description: 'Invites sent from the members drawer are accepted by the API but never reach SendGrid.', status: IssueStatus.IN_PROGRESS, priority: IssuePriority.CRITICAL, reporter: 'ravi', assignee: 'asha', age: 2 },
+  { title: 'Billing plan badge shows stale seat count', description: 'The plan summary keeps the previous seat count until a hard refresh.', status: IssueStatus.OPEN, priority: IssuePriority.MEDIUM, reporter: 'maya', assignee: null, age: 4 },
+  { title: 'Slack handoff creates duplicate tickets', description: 'A retry from Slack creates a second issue instead of updating the original.', status: IssueStatus.OPEN, priority: IssuePriority.HIGH, reporter: 'ravi', assignee: 'ravi', age: 5 },
+  { title: 'Saved filters reset after refresh', description: 'The URL keeps the filters, but the controls render their default values.', status: IssueStatus.RESOLVED, priority: IssuePriority.MEDIUM, reporter: 'asha', assignee: 'asha', age: 8 },
+  { title: 'Customer profile drawer clips activity feed', description: 'The right panel cannot scroll to the final event on small laptops.', status: IssueStatus.OPEN, priority: IssuePriority.LOW, reporter: 'maya', assignee: 'ravi', age: 9 },
+  { title: 'CSV contact import accepts blank company names', description: 'Rows with only an email address pass validation and later fail enrichment.', status: IssueStatus.CLOSED, priority: IssuePriority.LOW, reporter: 'ravi', assignee: null, age: 14 },
+  { title: 'Audit export times out for large workspaces', description: 'Exports over 10k events consistently hit the gateway timeout.', status: IssueStatus.IN_PROGRESS, priority: IssuePriority.CRITICAL, reporter: 'asha', assignee: 'ravi', age: 3 },
 ];
 
-const API_ISSUES: IssueSeed[] = [
-  { title: 'Rate limit headers missing from responses', description: 'Clients cannot back off without them.', status: IssueStatus.OPEN, priority: IssuePriority.HIGH, reporter: 'mei', assignee: 'asha', age: 2 },
-  { title: 'Pagination cursor breaks on deleted rows', description: null, status: IssueStatus.IN_PROGRESS, priority: IssuePriority.CRITICAL, reporter: 'asha', assignee: 'mei', age: 4 },
-  { title: 'OpenAPI schema out of date for /v2/orders', description: 'The response example still shows the v1 shape.', status: IssueStatus.OPEN, priority: IssuePriority.MEDIUM, reporter: 'mei', assignee: null, age: 8 },
-  { title: '500 on empty request body', description: 'The JSON parser error is not translated to a 400.', status: IssueStatus.RESOLVED, priority: IssuePriority.HIGH, reporter: 'asha', assignee: 'asha', age: 11 },
-  { title: 'Timestamps returned without a timezone', description: null, status: IssueStatus.OPEN, priority: IssuePriority.LOW, reporter: 'mei', assignee: null, age: 14 },
-  { title: 'Webhook retries hammer the endpoint', description: 'No exponential backoff between attempts.', status: IssueStatus.CLOSED, priority: IssuePriority.MEDIUM, reporter: 'asha', assignee: 'mei', age: 18 },
-  { title: 'Deprecated /v1 endpoints still undocumented', description: null, status: IssueStatus.OPEN, priority: IssuePriority.LOW, reporter: 'mei', assignee: 'mei', age: 6 },
-  { title: 'Auth errors leak the internal user id', description: 'The 401 body contains a database identifier.', status: IssueStatus.IN_PROGRESS, priority: IssuePriority.CRITICAL, reporter: 'asha', assignee: 'asha', age: 1 },
+const ALPINE_INTELLECT_ISSUES: IssueSeed[] = [
+  { title: 'Knowledge sync stalls on large Notion spaces', description: 'Workspaces above 1,500 pages remain in syncing state for hours.', status: IssueStatus.IN_PROGRESS, priority: IssuePriority.CRITICAL, reporter: 'maya', assignee: 'daniel', age: 1 },
+  { title: 'Citations point to archived documents', description: 'Answer cards still reference sources removed from the active collection.', status: IssueStatus.OPEN, priority: IssuePriority.HIGH, reporter: 'asha', assignee: 'maya', age: 2 },
+  { title: 'Prompt template editor loses unsaved changes', description: 'Switching tabs clears the draft without a browser warning.', status: IssueStatus.OPEN, priority: IssuePriority.MEDIUM, reporter: 'daniel', assignee: null, age: 5 },
+  { title: 'Usage dashboard totals shift by timezone', description: 'Daily token totals differ between UTC and account-local views.', status: IssueStatus.RESOLVED, priority: IssuePriority.HIGH, reporter: 'maya', assignee: 'asha', age: 7 },
+  { title: 'Source access not applied in preview answers', description: 'Preview mode can cite a restricted source before the answer is published.', status: IssueStatus.OPEN, priority: IssuePriority.CRITICAL, reporter: 'asha', assignee: 'daniel', age: 3 },
+  { title: 'Weekly insight email renders an empty chart', description: 'Accounts with no queries in the previous week get a blank chart container.', status: IssueStatus.CLOSED, priority: IssuePriority.LOW, reporter: 'maya', assignee: 'maya', age: 15 },
+  { title: 'Vector refresh does not retry failed files', description: 'A transient S3 read error leaves the file permanently marked failed.', status: IssueStatus.IN_PROGRESS, priority: IssuePriority.MEDIUM, reporter: 'daniel', assignee: 'daniel', age: 6 },
+  { title: 'Search relevance drops for short acronyms', description: 'Queries like ARR and SSO return broad semantic matches before exact hits.', status: IssueStatus.OPEN, priority: IssuePriority.MEDIUM, reporter: 'maya', assignee: null, age: 10 },
 ];
+
+const CAMPAIGN_ISSUES: IssueSeed[] = [
+  { title: 'Campaign launch checklist not saving owner', description: 'Changing the owner appears to save, but the old value returns after reload.', status: IssueStatus.OPEN, priority: IssuePriority.HIGH, reporter: 'ravi', assignee: 'asha', age: 1 },
+  { title: 'LinkedIn audience size shows zero after import', description: 'CSV import succeeds but the imported audience summary displays zero contacts.', status: IssueStatus.IN_PROGRESS, priority: IssuePriority.CRITICAL, reporter: 'asha', assignee: 'ravi', age: 2 },
+  { title: 'UTM builder duplicates source parameter', description: 'Generated links include two utm_source parameters when cloned from a template.', status: IssueStatus.OPEN, priority: IssuePriority.MEDIUM, reporter: 'maya', assignee: null, age: 4 },
+  { title: 'Approval reminder fires after campaign archived', description: 'The reminder job does not filter archived campaign records.', status: IssueStatus.OPEN, priority: IssuePriority.HIGH, reporter: 'daniel', assignee: 'maya', age: 6 },
+  { title: 'Budget pacing card uses wrong currency', description: 'EUR campaigns render pacing totals with the USD symbol.', status: IssueStatus.RESOLVED, priority: IssuePriority.MEDIUM, reporter: 'ravi', assignee: 'asha', age: 8 },
+  { title: 'Asset review comments disappear after refresh', description: 'New review comments save but are missing from the refreshed asset detail view.', status: IssueStatus.IN_PROGRESS, priority: IssuePriority.HIGH, reporter: 'asha', assignee: 'daniel', age: 3 },
+  { title: 'Experiment status stuck in draft', description: 'A landing-page experiment remains draft after the publish endpoint returns 200.', status: IssueStatus.CLOSED, priority: IssuePriority.LOW, reporter: 'maya', assignee: 'ravi', age: 18 },
+  { title: 'Segment sync skips uppercase email addresses', description: 'Contacts with uppercase characters in email are dropped before normalization.', status: IssueStatus.OPEN, priority: IssuePriority.CRITICAL, reporter: 'ravi', assignee: 'daniel', age: 5 },
+];
+
+const ISSUE_SEEDS: Record<ProjectKey, IssueSeed[]> = {
+  FUS: FUSER_ISSUES,
+  AINT: ALPINE_INTELLECT_ISSUES,
+  CAM: CAMPAIGN_ISSUES,
+};
 
 async function main(): Promise<void> {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
-  const users: Record<string, string> = {};
+  const users: Record<UserKey, string> = {} as Record<UserKey, string>;
   for (const user of USERS) {
-    const record = await prisma.user.upsert({
-      where: { email: user.email },
-      update: { name: user.name },
-      create: { name: user.name, email: user.email, passwordHash },
+    const existing = await prisma.user.findFirst({
+      where: { email: { in: [user.email, ...user.legacyEmails] } },
       select: { id: true },
     });
-    users[user.email.split('@')[0] as string] = record.id;
+
+    const record = existing
+      ? await prisma.user.update({
+          where: { id: existing.id },
+          data: { name: user.name, email: user.email, passwordHash },
+          select: { id: true },
+        })
+      : await prisma.user.create({
+          data: { name: user.name, email: user.email, passwordHash },
+          select: { id: true },
+        });
+    users[user.key] = record.id;
   }
 
-  const projects: Record<string, string> = {};
+  const projects: Record<ProjectKey, string> = {} as Record<ProjectKey, string>;
   for (const project of PROJECTS) {
-    const record = await prisma.project.upsert({
-      where: { key: project.key },
-      update: { name: project.name, description: project.description },
-      create: project,
-      select: { id: true },
-    });
+    const existing =
+      (await prisma.project.findUnique({ where: { key: project.key }, select: { id: true } })) ??
+      (await prisma.project.findFirst({
+        where: { key: { in: project.legacyKeys } },
+        select: { id: true },
+      }));
+
+    const record = existing
+      ? await prisma.project.update({
+          where: { id: existing.id },
+          data: { key: project.key, name: project.name, description: project.description },
+          select: { id: true },
+        })
+      : await prisma.project.create({
+          data: { key: project.key, name: project.name, description: project.description },
+          select: { id: true },
+        });
+
+    if (project.legacyKeys.length > 0) {
+      await prisma.project.deleteMany({
+        where: { key: { in: project.legacyKeys }, id: { not: record.id } },
+      });
+    }
+
     projects[project.key] = record.id;
   }
 
-  const memberships: [string, string, Role][] = [
-    ['WEB', 'asha', Role.MAINTAINER],
-    ['WEB', 'ravi', Role.MEMBER],
-    ['API', 'asha', Role.MAINTAINER],
-    ['API', 'mei', Role.MEMBER],
+  const memberships: [ProjectKey, UserKey, Role][] = [
+    ['FUS', 'asha', Role.MAINTAINER],
+    ['FUS', 'ravi', Role.MAINTAINER],
+    ['FUS', 'maya', Role.MEMBER],
+    ['AINT', 'asha', Role.MAINTAINER],
+    ['AINT', 'maya', Role.MAINTAINER],
+    ['AINT', 'daniel', Role.MEMBER],
+    ['CAM', 'asha', Role.MAINTAINER],
+    ['CAM', 'ravi', Role.MEMBER],
+    ['CAM', 'maya', Role.MEMBER],
+    ['CAM', 'daniel', Role.MAINTAINER],
   ];
   for (const [projectKey, userKey, role] of memberships) {
     const projectId = projects[projectKey] as string;
@@ -102,13 +179,27 @@ async function main(): Promise<void> {
     });
   }
 
+  const hasMembership = (projectKey: ProjectKey, userKey: UserKey): boolean =>
+    memberships.some(([memberProjectKey, memberUserKey]) => (
+      memberProjectKey === projectKey && memberUserKey === userKey
+    ));
+
+  const assertSeedIssueMembership = (projectKey: ProjectKey, seed: IssueSeed): void => {
+    if (!hasMembership(projectKey, seed.reporter)) {
+      throw new Error(`Seed issue "${seed.title}" reporter is not a ${projectKey} member`);
+    }
+    if (seed.assignee && !hasMembership(projectKey, seed.assignee)) {
+      throw new Error(`Seed issue "${seed.title}" assignee is not a ${projectKey} member`);
+    }
+  };
+
   // Issues have no natural unique key, so re-seeding replaces this project's issues
   // wholesale rather than accumulating duplicates. Comments cascade with them.
   //
   // Delete + recreate runs in ONE transaction: an interrupted seed (Ctrl-C, dropped
   // connection) must roll back to the previous issue set rather than leave a reviewer
   // with a silently half-populated project.
-  const seedIssues = async (projectKey: string, seeds: IssueSeed[]): Promise<string[]> => {
+  const seedIssues = async (projectKey: ProjectKey, seeds: IssueSeed[]): Promise<string[]> => {
     const projectId = projects[projectKey] as string;
 
     return prisma.$transaction(async (tx) => {
@@ -116,6 +207,7 @@ async function main(): Promise<void> {
 
       const ids: string[] = [];
       for (const seed of seeds) {
+        assertSeedIssueMembership(projectKey, seed);
         const created = await tx.issue.create({
           data: {
             projectId,
@@ -139,38 +231,46 @@ async function main(): Promise<void> {
     }, { maxWait: 15_000, timeout: 120_000 });
   };
 
-  const webIssueIds = await seedIssues('WEB', WEB_ISSUES);
-  const apiIssueIds = await seedIssues('API', API_ISSUES);
+  const issueIds: Record<ProjectKey, string[]> = {} as Record<ProjectKey, string[]>;
+  for (const project of PROJECTS) {
+    issueIds[project.key] = await seedIssues(project.key, ISSUE_SEEDS[project.key]);
+  }
 
-  const threads: [string, [string, string][]][] = [
+  const threads: [string, [UserKey, string][]][] = [
     [
-      webIssueIds[0] as string,
+      issueIds.FUS[0] as string,
       [
-        ['ravi', 'Reproduced on iOS 17.4 with Safari 17.'],
-        ['asha', 'Looks like the tap handler is attached after hydration. Investigating.'],
-        ['asha', 'Fix is in review — should land today.'],
+        ['asha', 'This is blocking the enterprise pilot workspace.'],
+        ['ravi', 'Confirmed in Okta preview and production tenants.'],
+        ['asha', 'Please verify after the callback URL change lands.'],
       ],
     ],
     [
-      webIssueIds[3] as string,
+      issueIds.FUS[1] as string,
       [
-        ['ravi', 'Two customers reported this today.'],
-        ['asha', 'Raising to critical; the provider is returning 429s.'],
+        ['ravi', 'The API returns 202, but SendGrid does not show a matching event.'],
+        ['asha', 'Checking whether the invite template id changed in production.'],
       ],
     ],
     [
-      apiIssueIds[1] as string,
+      issueIds.AINT[0] as string,
       [
-        ['asha', 'Cursor decoding assumes the row still exists.'],
-        ['mei', 'Switching to a keyset that includes the id as a tiebreaker.'],
+        ['maya', 'Largest impacted workspace has 2,300 pages.'],
+        ['daniel', 'Batch size is too high for the current worker memory limit.'],
       ],
     ],
     [
-      apiIssueIds[7] as string,
+      issueIds.AINT[4] as string,
       [
-        ['asha', 'The 401 body must never include database identifiers.'],
-        ['mei', 'Agreed — replacing it with a generic message.'],
-        ['asha', 'Add a regression test alongside the fix, please.'],
+        ['asha', 'This must be fixed before the customer security review.'],
+        ['daniel', 'Adding an authorization check before preview answer assembly.'],
+      ],
+    ],
+    [
+      issueIds.CAM[1] as string,
+      [
+        ['ravi', 'The import summary payload has the right count, so this looks frontend-side.'],
+        ['asha', 'Please compare the uploaded audience id with the selected campaign id.'],
       ],
     ],
   ];
@@ -193,7 +293,9 @@ async function main(): Promise<void> {
   console.info(
     `Seeded ${userCount} users, ${projectCount} projects, ${issueCount} issues, ${commentCount} comments.`,
   );
-  console.info(`Demo login: ${USERS[0].email} / ${DEMO_PASSWORD}`);
+  const demoUser = USERS.find((user) => user.key === DEMO_USER_KEY);
+  if (!demoUser) throw new Error('Demo user is not configured');
+  console.info(`Demo login: ${demoUser.email} / ${DEMO_PASSWORD}`);
 }
 
 main()
